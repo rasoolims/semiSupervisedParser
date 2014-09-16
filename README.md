@@ -1,4 +1,4 @@
-Besmellah
+           ->بسم الله الرحمن الرحیم!<-
 
 Semi-Supervised Parser
 ====================
