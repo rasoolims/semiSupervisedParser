@@ -1,4 +1,4 @@
-package Classifer;
+package Classifier;
 
 import java.io.*;
 import java.util.HashMap;

@@ -1,7 +1,7 @@
 package Test;
 
 import Accessories.MSTReader;
-import Classifer.AveragedPerceptron;
+import Classifier.AveragedPerceptron;
 import Structures.Sentence;
 import Trainer.PartialTreeTrainer;
 
@@ -21,16 +21,18 @@ public class SanityCheckTest {
         String trainPath=   "/Users/msr/Projects/mstparser_0.2/MSTParser/data/train.lab";
         String devPath="/Users/msr/Projects/mstparser_0.2/MSTParser/data/test.lab";
         String  modelPath="/Users/msr/Projects/mstparser_0.2/MSTParser/data/model";
-        if(args.length>=3){
+        boolean random=false;
+        if(args.length>=4){
             trainPath=args[0];
             devPath=args[1];
             modelPath=args[2];
+            random=Boolean.parseBoolean(args[3]);
         }
 
         AveragedPerceptron perceptron=new AveragedPerceptron(44);
 
-        ArrayList<Sentence> trainData= MSTReader.readSentences(trainPath);
-        ArrayList<Sentence> devData=MSTReader.readSentences(devPath);
+        ArrayList<Sentence> trainData= MSTReader.readSentences(trainPath,random);
+        ArrayList<Sentence> devData=MSTReader.readSentences(devPath,false);
         ArrayList<String> possibleLabels=new ArrayList<String>();
         possibleLabels.add("");
 

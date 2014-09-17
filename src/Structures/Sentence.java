@@ -69,4 +69,12 @@ public class Sentence {
     public boolean hasHead(int index){
         return heads[index]>=0;
     }
+
+    public String[] getWords() {
+        return words;
+    }
+
+    public String[] getTags() {
+        return tags;
+    }
 }

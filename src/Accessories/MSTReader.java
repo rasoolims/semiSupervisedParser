@@ -5,6 +5,7 @@ import Structures.Sentence;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.Random;
 
 /**
  * Created by Mohammad Sadegh Rasooli.
@@ -16,10 +17,11 @@ import java.util.ArrayList;
 
 public class MSTReader {
 
-    public static ArrayList<Sentence> readSentences(String path) throws Exception{
+    public static ArrayList<Sentence> readSentences(String path,boolean isRandom) throws Exception{
         BufferedReader reader=new BufferedReader(new FileReader(path));
         String line=null;
 
+        Random random=new Random();
         ArrayList<Sentence> sentences=new ArrayList<Sentence>();
 
         while((line=reader.readLine())!=null){
@@ -51,8 +53,14 @@ public class MSTReader {
             for(int i=1;i<length;i++){
                  sWords[i]=words[i-1];
                 sTags[i]=posTags[i-1];
+
+                if(!isRandom || random.nextDouble()<0.2){
                 sHead[i]= Integer.parseInt(heads[i - 1]);
                sLabels[i]=labels[i-1];
+                }  else{
+                    sHead[i]= -1;
+                    sLabels[i]="";
+                }
             }
 
             Sentence sentence=new Sentence(sWords,sTags,sHead,sLabels);

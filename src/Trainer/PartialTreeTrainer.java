@@ -1,7 +1,8 @@
 package Trainer;
 
-import Classifer.AveragedPerceptron;
+import Classifier.AveragedPerceptron;
 import Decoder.FeatureExtractor;
+import Decoder.GraphBasedParser;
 import Structures.Sentence;
 
 import java.util.ArrayList;
@@ -22,15 +23,15 @@ public class PartialTreeTrainer {
         int dimension = perceptron.dimension();
 
         for (int iter = 0; iter < maxIter; iter++) {
-            int numDep=0;
-            double correct=0;
+            int numDep = 0;
+            double correct = 0;
             System.out.println("*********************************************************");
             System.out.println("iteration: " + iter);
-            int senCount=0;
+            int senCount = 0;
             for (Sentence sentence : trainSentences) {
                 senCount++;
-                if(senCount%100==0){
-                    System.out.print(senCount+"...");
+                if (senCount % 100 == 0) {
+                    System.out.print(senCount + "...");
                 }
                 for (int ch = 1; ch < sentence.length(); ch++) {
                     if (sentence.hasHead(ch)) {
@@ -54,30 +55,29 @@ public class PartialTreeTrainer {
                             }
                         }
 
-                        if(argmax!=goldHead ||  bestLabel.equals(goldLabel))  {
-                            Object[] predictedFeatures=FeatureExtractor.extractFeatures(sentence, argmax, ch, bestLabel, dimension);
-                            Object[] goldFeatures=FeatureExtractor.extractFeatures(sentence, goldHead, ch, goldLabel, dimension);
+                        if (argmax != goldHead || bestLabel.equals(goldLabel)) {
+                            Object[] predictedFeatures = FeatureExtractor.extractFeatures(sentence, argmax, ch, bestLabel, dimension);
+                            Object[] goldFeatures = FeatureExtractor.extractFeatures(sentence, goldHead, ch, goldLabel, dimension);
 
-                            for(int i=0;i<predictedFeatures.length;i++){
-                                if(predictedFeatures[i] instanceof String){
-                                    if(!predictedFeatures[i].equals(goldFeatures[i])){
-                                        perceptron.updateWeight(i,(String)predictedFeatures[i],-1.0);
-                                        perceptron.updateWeight(i,(String)goldFeatures[i],1.0);
+                            for (int i = 0; i < predictedFeatures.length; i++) {
+                                if (predictedFeatures[i] instanceof String) {
+                                    if (!predictedFeatures[i].equals(goldFeatures[i])) {
+                                        perceptron.updateWeight(i, (String) predictedFeatures[i], -1.0);
+                                        perceptron.updateWeight(i, (String) goldFeatures[i], 1.0);
                                     }
-                                }
-                                else{
-                                    HashMap<String,Integer> prd= (HashMap<String,Integer>)predictedFeatures[i];
-                                    HashMap<String,Integer> gold= (HashMap<String,Integer>)goldFeatures[i];
+                                } else {
+                                    HashMap<String, Integer> prd = (HashMap<String, Integer>) predictedFeatures[i];
+                                    HashMap<String, Integer> gold = (HashMap<String, Integer>) goldFeatures[i];
 
-                                    for(String feat:prd.keySet()){
-                                        perceptron.updateWeight(i,feat,-prd.get(feat));
+                                    for (String feat : prd.keySet()) {
+                                        perceptron.updateWeight(i, feat, -prd.get(feat));
                                     }
-                                    for(String feat:gold.keySet()){
-                                        perceptron.updateWeight(i,feat,gold.get(feat));
+                                    for (String feat : gold.keySet()) {
+                                        perceptron.updateWeight(i, feat, gold.get(feat));
                                     }
                                 }
                             }
-                        }     else{
+                        } else {
                             correct++;
                         }
 
@@ -86,30 +86,34 @@ public class PartialTreeTrainer {
                 }
             }
             System.out.println("");
-            double accuracy=100.0*correct/numDep;
-            System.out.println("accuracy : "+accuracy);
+            double accuracy = 100.0 * correct / numDep;
+            System.out.println("accuracy : " + accuracy);
 
             System.out.print("\nsaving current model...");
-            perceptron.saveModel(modelPath+"_"+iter);
+            perceptron.saveModel(modelPath + "_" + iter);
             System.out.println("done!");
 
             System.out.print("loading current model...");
-           AveragedPerceptron avgPerceptron=AveragedPerceptron.loadModel(modelPath+"_"+iter);
+            AveragedPerceptron avgPerceptron = AveragedPerceptron.loadModel(modelPath + "_" + iter);
             System.out.println("done!");
+
+            GraphBasedParser parser = new GraphBasedParser(avgPerceptron, possibleLabels);
 
             System.out.print("\nParsing dev file...");
 
-            int labelCorrect=0;
-            int unlabelCorrect=0;
-            int allDeps=0;
-            senCount=0;
+            int labelCorrect = 0;
+            int unlabelCorrect = 0;
+            int allDeps = 0;
+            senCount = 0;
             for (Sentence sentence : devSentences) {
+                parser.eisner1stOrder(sentence, true);
+
                 senCount++;
-                if(senCount%100==0){
-                    System.out.print(senCount+"...");
+                if (senCount % 100 == 0) {
+                    System.out.print(senCount + "...");
                 }
                 for (int ch = 1; ch < sentence.length(); ch++) {
-                    if (sentence.hasHead(ch)) {
+                    if (sentence.hasHead(ch) && !sentence.pos(ch).equals(".")/**/) {
                         allDeps++;
                         // finding the best head
                         int goldHead = sentence.head(ch);
@@ -130,9 +134,9 @@ public class PartialTreeTrainer {
                             }
                         }
 
-                        if(argmax==goldHead){
+                        if (argmax == goldHead) {
                             unlabelCorrect++;
-                            if(bestLabel.equals(goldLabel))
+                            if (bestLabel.equals(goldLabel))
                                 labelCorrect++;
                         }
                     }
@@ -140,9 +144,50 @@ public class PartialTreeTrainer {
             }
             System.out.println("");
 
-            double labeledAccuracy=100.0*labelCorrect/ allDeps;
-            double unlabeledAccuracy=100.0*unlabelCorrect/ allDeps;
+            double labeledAccuracy = 100.0 * labelCorrect / allDeps;
+            double unlabeledAccuracy = 100.0 * unlabelCorrect / allDeps;
             System.out.println(String.format("unlabeled: %s labeled: %s", unlabeledAccuracy, labeledAccuracy));
+
+
+            labelCorrect = 0;
+            unlabelCorrect = 0;
+            allDeps = 0;
+            senCount = 0;
+            for (Sentence sentence : devSentences) {
+                Sentence parseTree = parser.eisner1stOrder(sentence, true);
+
+                senCount++;
+                if (senCount % 100 == 0) {
+                    System.out.print(senCount + "...");
+                }
+
+                for (int ch = 1; ch < sentence.length(); ch++) {
+                    if (sentence.hasHead(ch) && !sentence.pos(ch).equals(".")) {
+                        allDeps++;
+                        int goldHead = sentence.head(ch);
+                        String goldLabel = sentence.label(ch);
+                        int argmax = parseTree.head(ch);
+
+                        try {
+                            String bestLabel = parseTree.label(ch);
+
+                            if (argmax == goldHead) {
+                                unlabelCorrect++;
+                                if (bestLabel.equals(goldLabel))
+                                    labelCorrect++;
+                            }
+                        } catch (Exception ex) {
+                            System.out.print("Why?");
+                        }
+                    }
+                }
+            }
+            System.out.println("");
+
+            labeledAccuracy = 100.0 * labelCorrect / allDeps;
+            unlabeledAccuracy = 100.0 * unlabelCorrect / allDeps;
+            System.out.println(String.format("unlabeled: %s labeled: %s", unlabeledAccuracy, labeledAccuracy));
+
         }
     }
 
