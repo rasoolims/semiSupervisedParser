@@ -131,6 +131,51 @@ public class FeatureExtractor {
         features[index++]=hPrevP+"|"+hp+"|"+cp+"|"+cNextP;
 
 
+        if(!label.equals("")){
+            /**
+             * From Table 1(b) in the paper
+             */
+            features[index++] = hwp + "|" + cwp+"|"+label;
+            features[index++] = hwp + "|" + cwp + "|" + distance+"|"+label;
+            features[index++] = hwp + "|" + cwp + "|" + direction+"|"+label;
+
+            features[index++] = hp + "|" + cwp+"|"+label;
+            features[index++] = hp + "|" + cwp + "|" + distance+"|"+label;
+            features[index++] = hp + "|" + cwp + "|" + direction+"|"+label;
+
+            features[index++] = hw + "|" + cwp+"|"+label;
+            features[index++] = hw + "|" + cwp + "|" + distance+"|"+label;
+            features[index++] = hw + "|" + cwp + "|" + direction+"|"+label;
+
+            features[index++] = hwp + "|" + cp+"|"+label;
+            features[index++] = hwp + "|" + cp + "|" + distance+"|"+label;
+            features[index++] = hwp + "|" + cp + "|" + direction+"|"+label;
+
+
+            features[index++] = hwp + "|" + cw+"|"+label;
+            features[index++] = hwp + "|" + cw + "|" + distance+"|"+label;
+            features[index++] = hwp + "|" + cw + "|" + direction+"|"+label;
+
+            /**
+             * From Table 1(c) in the paper
+             */
+            HashMap<String, Integer> inBetweenFeatures2 = new HashMap<String, Integer>();
+            for (int i = Math.min(headIndex, childIndex) + 1; i < Math.max(headIndex, childIndex); i++) {
+                String bp = sentence.pos(i);
+                String mixFeat = hp + "|" + bp + "|" + cp+"|"+label;
+                if (!inBetweenFeatures2.containsKey(maxFeatureLength))
+                    inBetweenFeatures2.put(mixFeat, 1);
+                else
+                    inBetweenFeatures2.put(mixFeat, inBetweenFeatures2.get(mixFeat) + 1);
+            }
+            features[index++] = inBetweenFeatures2;
+
+            features[index++]=hp+"|"+hNextP+"|"+cPrevP+"|"+cp+"|"+label;
+            features[index++]=hPrevP+"|"+hp+"|"+cPrevP+"|"+cp+"|"+label;
+            features[index++]=hp+"|"+hNextP+"|"+cp+"|"+cNextP+"|"+label;
+            features[index++]=hPrevP+"|"+hp+"|"+cp+"|"+cNextP+"|"+label;
+        }
+
         return features;
     }
 }

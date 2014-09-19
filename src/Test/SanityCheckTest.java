@@ -18,24 +18,42 @@ import java.util.ArrayList;
 public class SanityCheckTest {
     public static void main(String[] args) throws Exception {
         System.out.println("Hello world!");
-        String trainPath=   "/Users/msr/Projects/mstparser_0.2/MSTParser/data/train.lab";
-        String devPath="/Users/msr/Projects/mstparser_0.2/MSTParser/data/test.lab";
-        String  modelPath="/Users/msr/Projects/mstparser_0.2/MSTParser/data/model";
-        boolean random=false;
-        if(args.length>=4){
-            trainPath=args[0];
-            devPath=args[1];
-            modelPath=args[2];
-            random=Boolean.parseBoolean(args[3]);
+        String trainPath = "/Users/msr/Projects/mstparser_0.2/MSTParser/data/train.lab";
+        String devPath = "/Users/msr/Projects/mstparser_0.2/MSTParser/data/test.lab";
+        String modelPath = "/Users/msr/Projects/mstparser_0.2/MSTParser/data/model";
+        boolean useDynamTrain = false;
+        boolean labeled = false;
+
+        boolean random = false;
+        if (args.length >= 5) {
+            trainPath = args[0];
+            devPath = args[1];
+            modelPath = args[2];
+            random = Boolean.parseBoolean(args[3]);
+            useDynamTrain = Boolean.parseBoolean(args[4]);
+            labeled = Boolean.parseBoolean(args[5]);
         }
 
-        AveragedPerceptron perceptron=new AveragedPerceptron(44);
+        AveragedPerceptron perceptron = new AveragedPerceptron(44);
 
-        ArrayList<Sentence> trainData= MSTReader.readSentences(trainPath,random);
-        ArrayList<Sentence> devData=MSTReader.readSentences(devPath,false);
-        ArrayList<String> possibleLabels=new ArrayList<String>();
-        possibleLabels.add("");
+        ArrayList<Sentence> trainData = MSTReader.readSentences(trainPath, random);
+        ArrayList<Sentence> devData = MSTReader.readSentences(devPath, false);
+        ArrayList<String> possibleLabels = new ArrayList<String>();
+        if (labeled) {
+            for (Sentence sentence : trainData) {
+                for (int i = 1; i < sentence.length(); i++) {
+                    if (sentence.hasHead(i)) {
+                        String label = sentence.label(i);
+                        if (!label.equals("") && !possibleLabels.contains(label))
+                            possibleLabels.add(label);
+                    }
+                }
+            }
+        }
 
-        PartialTreeTrainer.train(trainData,devData,possibleLabels,perceptron,modelPath,30);
+        if (possibleLabels.size() == 0)
+            possibleLabels.add("");
+
+        PartialTreeTrainer.train(trainData, devData, possibleLabels, perceptron, modelPath, 30, useDynamTrain, modelPath + ".out");
     }
 }

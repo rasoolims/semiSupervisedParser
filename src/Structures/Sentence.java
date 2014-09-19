@@ -77,4 +77,22 @@ public class Sentence {
     public String[] getTags() {
         return tags;
     }
+
+    @Override
+    public String toString(){
+        StringBuilder wordBuilder=new StringBuilder();
+        StringBuilder tagBuilder=new StringBuilder();
+        StringBuilder labelBuilder=new StringBuilder();
+        StringBuilder headBuilder=new StringBuilder();
+
+        for(int i=1;i<words.length;i++){
+            wordBuilder.append(words[i]+"\t");
+            tagBuilder.append(tags[i]+"\t");
+            labelBuilder.append(labels[i]+"\t");
+            headBuilder.append(heads[i]+"\t");
+        }
+           if(labelBuilder.toString().trim().length()>0)
+        return wordBuilder.toString().trim()+"\n"+tagBuilder.toString().trim()+"\n"+labelBuilder.toString().trim()+"\n"+headBuilder.toString().trim()+"\n\n";
+        return wordBuilder.toString().trim()+"\n"+tagBuilder.toString().trim()+"\n"+headBuilder.toString().trim()+"\n\n";
+    }
 }

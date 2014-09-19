@@ -55,11 +55,16 @@ public class MSTReader {
                 sTags[i]=posTags[i-1];
 
                 if(!isRandom || random.nextDouble()<0.2){
-                sHead[i]= Integer.parseInt(heads[i - 1]);
-               sLabels[i]=labels[i-1];
+                    sHead[i]= Integer.parseInt(heads[i - 1]);
+                   sLabels[i]=labels[i-1];
                 }  else{
-                    sHead[i]= -1;
-                    sLabels[i]="";
+                    if(random.nextDouble()<1.0/8){
+                        sHead[i]= random.nextInt(length);
+                        sLabels[i]="";
+                    }else{
+                        sHead[i]= -1;
+                        sLabels[i]="";
+                    }
                 }
             }
 

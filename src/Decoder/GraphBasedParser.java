@@ -26,7 +26,8 @@ public class GraphBasedParser {
     public Sentence eisner1stOrder(Sentence sentence, boolean decode) {
         int l = sentence.length();
         int dimension = classifier.dimension();
-        double[][][] scores = new double[l][l][labels.size()];
+        double[][] scores = new double[l][l];
+        String[][] bestLabel=new String[l][l];
 
         int[] finalDeps = new int[l];
         finalDeps[0] = -1;
@@ -36,10 +37,20 @@ public class GraphBasedParser {
         // getting first-order attachment scores
         for (int i = 0; i < l; i++) {
             for (int j = i+1; j < l; j++) {
+                scores[i][j]=Double.NEGATIVE_INFINITY;
+                scores[j][i]=Double.NEGATIVE_INFINITY;
                     for (int d = 0; d < labels.size(); d++) {
                         String label = labels.get(d);
-                        scores[i][j][d] = classifier.score(FeatureExtractor.extractFeatures(sentence, i, j, label, dimension), decode);
-                        scores[j][i][d] = classifier.score(FeatureExtractor.extractFeatures(sentence, j,i, label, dimension), decode);
+                        double score1 = classifier.score(FeatureExtractor.extractFeatures(sentence, i, j, label, dimension), decode);
+                        if(score1>scores[i][j]){
+                            scores[i][j]=score1;
+                            bestLabel[i][j]=label;
+                        }
+                        double score2  = classifier.score(FeatureExtractor.extractFeatures(sentence, j,i, label, dimension), decode);
+                        if(score2>scores[j][i]){
+                            scores[j][i]=score2;
+                            bestLabel[j][i]=label;
+                        }
                     }
             }
         }
@@ -75,26 +86,11 @@ public class GraphBasedParser {
                 c[s][t][left][incomplete] = Double.NEGATIVE_INFINITY;
                 c[s][t][right][incomplete] = Double.NEGATIVE_INFINITY;
                 for (int r = s; r < t; r++) {
-                    String bestRightLabel = "";
-                    double bestRightScore = Double.NEGATIVE_INFINITY;
-                    String bestLeftLabel = "";
-                    double bestLeftScore = Double.NEGATIVE_INFINITY;
+                    String bestRightLabel =  bestLabel[s][t];
+                    double bestRightScore = scores[s][t];
+                    String bestLeftLabel = bestLabel[t][s];
+                    double bestLeftScore = scores[t][s];
 
-                    // finding best labels
-                    for (int d = 0; d < labels.size(); d++) {
-                        String label = labels.get(d);
-                        double score = scores[t][s][d];
-                        if (score > bestLeftScore) {
-                            bestLeftScore = score;
-                           bestLeftLabel  = label;
-                        }
-
-                        score = scores[s][t][d];
-                        if (score > bestRightScore) {
-                            bestRightScore = score;
-                            bestRightLabel = label;
-                        }
-                    }
 
                     double newLeftValue = c[s][r][right][complete] + c[r + 1][t][left][complete] + bestLeftScore;
                     if (newLeftValue > c[s][t][left][incomplete]) {
