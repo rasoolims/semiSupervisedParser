@@ -16,13 +16,15 @@ public class AveragedPerceptron implements Serializable{
     Object[] avgWeights;
     int iteration;
 
+
     public AveragedPerceptron(int length){
         weights=new Object[length];
         avgWeights=new Object[length];
 
+
         for(int i=0;i<length;i++){
-            weights[i]=new HashMap<String, Double>();
-            avgWeights[i]=new HashMap<String, Double>();
+            weights[i]=new HashMap<String, Double>(1000000);
+            avgWeights[i]=new HashMap<String, Double>(1000000);
         }
         iteration=1;
     }

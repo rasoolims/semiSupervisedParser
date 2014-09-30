@@ -1,14 +1,14 @@
 package Trainer;
 
-import Classifier.AveragedPerceptron;
-import Decoder.FeatureExtractor;
-import Decoder.GraphBasedParser;
-import Structures.Sentence;
+        import Classifier.AveragedPerceptron;
+        import Decoder.FeatureExtractor;
+        import Decoder.GraphBasedParser;
+        import Structures.Sentence;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
+        import java.io.BufferedWriter;
+        import java.io.FileWriter;
+        import java.util.ArrayList;
+        import java.util.HashMap;
 
 /**
  * Created by Mohammad Sadegh Rasooli.
@@ -17,7 +17,6 @@ import java.util.HashMap;
  * Time: 11:28 AM
  * To report any bugs or problems contact rasooli@cs.columbia.edu
  */
-
 public class PartialTreeTrainer {
     public static void train(ArrayList<Sentence> trainSentences, ArrayList<Sentence> devSentences, ArrayList<String> possibleLabels,
                              AveragedPerceptron perceptron, String modelPath, int maxIter, boolean trainStructuredForFullTrees,String outPath) throws Exception {
@@ -45,94 +44,96 @@ public class PartialTreeTrainer {
                     }
                 }
                 if(!isCompleteTree || !trainStructuredForFullTrees){
-                for (int ch = 1; ch < sentence.length(); ch++) {
-                    if (sentence.hasHead(ch)) {
-                        numDep++;
-                        // finding the best head
-                        int goldHead = sentence.head(ch);
-                        String goldLabel = sentence.label(ch);
-
-                        int argmax = 0;
-                        String bestLabel = "";
-                        double max = Double.NEGATIVE_INFINITY;
-
-                        for (String label : possibleLabels) {
-                            for (int h = 0; h < sentence.length(); h++) {
-                                double score = perceptron.score(FeatureExtractor.extractFeatures(sentence, h, ch, label, dimension), false);
-                                if (score > max) {
-                                    max = score;
-                                    bestLabel = label;
-                                    argmax = h;
-                                }
-                            }
-                        }
-
-                        if (argmax != goldHead || bestLabel.equals(goldLabel)) {
-                            Object[] predictedFeatures = FeatureExtractor.extractFeatures(sentence, argmax, ch, bestLabel, dimension);
-                            Object[] goldFeatures = FeatureExtractor.extractFeatures(sentence, goldHead, ch,bestLabel.equals("")?"": goldLabel, dimension);
-
-                            for (int i = 0; i < predictedFeatures.length; i++) {
-                                if (predictedFeatures[i] instanceof String) {
-                                    if (!predictedFeatures[i].equals(goldFeatures[i])) {
-                                        perceptron.updateWeight(i, (String) predictedFeatures[i], -1.0);
-                                        perceptron.updateWeight(i, (String) goldFeatures[i], 1.0);
-                                    }
-                                } else {
-                                    HashMap<String, Integer> prd = (HashMap<String, Integer>) predictedFeatures[i];
-                                    HashMap<String, Integer> gold = (HashMap<String, Integer>) goldFeatures[i];
-
-                                    for (String feat : prd.keySet()) {
-                                        perceptron.updateWeight(i, feat, -prd.get(feat));
-                                    }
-                                    for (String feat : gold.keySet()) {
-                                        perceptron.updateWeight(i, feat, gold.get(feat));
-                                    }
-                                }
-                            }
-                        } else {
-                            correct++;
-                        }
-
-                        perceptron.incrementIteration();
-                    }
-                }
-                } else{
-                    Sentence parseTree = trainParser.eisner1stOrder(sentence, false);
-
                     for (int ch = 1; ch < sentence.length(); ch++) {
+                        if (sentence.hasHead(ch)) {
                             numDep++;
                             // finding the best head
                             int goldHead = sentence.head(ch);
                             String goldLabel = sentence.label(ch);
 
-                            int argmax = parseTree.head(ch);
-                            String bestLabel = parseTree.label(ch);
+                            int argmax = 0;
+                            String bestLabel = "";
+                            double max = Double.NEGATIVE_INFINITY;
 
-                            if (argmax != goldHead || (possibleLabels.size()>0 && !bestLabel.equals(goldLabel))) {
+                            for (String label : possibleLabels) {
+                                for (int h = 0; h < sentence.length(); h++) {
+                                    double score = perceptron.score(FeatureExtractor.extractFeatures(sentence, h, ch, label, dimension), false);
+                                    if (score > max) {
+                                        max = score;
+                                        bestLabel = label;
+                                        argmax = h;
+                                    }
+                                }
+                            }
+
+                            if (argmax != goldHead || bestLabel.equals(goldLabel)) {
                                 Object[] predictedFeatures = FeatureExtractor.extractFeatures(sentence, argmax, ch, bestLabel, dimension);
-                                Object[] goldFeatures = FeatureExtractor.extractFeatures(sentence, goldHead, ch, goldLabel, dimension);
+                                Object[] goldFeatures = FeatureExtractor.extractFeatures(sentence, goldHead, ch,bestLabel.equals("")?"": goldLabel, dimension);
 
                                 for (int i = 0; i < predictedFeatures.length; i++) {
                                     if (predictedFeatures[i] instanceof String) {
                                         if (!predictedFeatures[i].equals(goldFeatures[i])) {
-                                            perceptron.updateWeight(i, (String) predictedFeatures[i], -1.0);
-                                            perceptron.updateWeight(i, (String) goldFeatures[i], 1.0);
+                                            perceptron.updateWeight(i, (String) predictedFeatures[i],sentence.confidence[ch]*-1.0);
+                                            perceptron.updateWeight(i, (String) goldFeatures[i],sentence.confidence[ch]* 1.0);
                                         }
                                     } else {
                                         HashMap<String, Integer> prd = (HashMap<String, Integer>) predictedFeatures[i];
                                         HashMap<String, Integer> gold = (HashMap<String, Integer>) goldFeatures[i];
 
                                         for (String feat : prd.keySet()) {
-                                            perceptron.updateWeight(i, feat, -prd.get(feat));
+                                            perceptron.updateWeight(i, feat,sentence.confidence[ch]* -prd.get(feat));
                                         }
                                         for (String feat : gold.keySet()) {
-                                            perceptron.updateWeight(i, feat, gold.get(feat));
+                                            perceptron.updateWeight(i, feat,sentence.confidence[ch]* gold.get(feat));
                                         }
                                     }
                                 }
                             } else {
                                 correct++;
                             }
+
+                        }
+                    }
+                    perceptron.incrementIteration();
+                } else{
+                    Sentence parseTree = trainParser.eisner1stOrder(sentence, false);
+
+                    for (int ch = 1; ch < sentence.length(); ch++) {
+                        numDep++;
+                        // finding the best head
+                        int goldHead = sentence.head(ch);
+                        String goldLabel = sentence.label(ch);
+                        if(possibleLabels.size()<=1)
+                            goldLabel="";
+
+                        int argmax = parseTree.head(ch);
+                        String bestLabel = parseTree.label(ch);
+
+                        if (argmax != goldHead || (possibleLabels.size()>1 && !bestLabel.equals(goldLabel))) {
+                            Object[] predictedFeatures = FeatureExtractor.extractFeatures(sentence, argmax, ch, bestLabel, dimension);
+                            Object[] goldFeatures = FeatureExtractor.extractFeatures(sentence, goldHead, ch, goldLabel, dimension);
+
+                            for (int i = 0; i < predictedFeatures.length; i++) {
+                                if (predictedFeatures[i] instanceof String) {
+                                    if (!predictedFeatures[i].equals(goldFeatures[i])) {
+                                        perceptron.updateWeight(i, (String) predictedFeatures[i], sentence.confidence[ch]*-1.0);
+                                        perceptron.updateWeight(i, (String) goldFeatures[i], sentence.confidence[ch]*1.0);
+                                    }
+                                } else {
+                                    HashMap<String, Integer> prd = (HashMap<String, Integer>) predictedFeatures[i];
+                                    HashMap<String, Integer> gold = (HashMap<String, Integer>) goldFeatures[i];
+
+                                    for (String feat : prd.keySet()) {
+                                        perceptron.updateWeight(i, feat,sentence.confidence[ch]* -prd.get(feat));
+                                    }
+                                    for (String feat : gold.keySet()) {
+                                        perceptron.updateWeight(i, feat, sentence.confidence[ch]*gold.get(feat));
+                                    }
+                                }
+                            }
+                        } else {
+                            correct++;
+                        }
                     }
                     perceptron.incrementIteration();
 
@@ -238,6 +239,7 @@ public class PartialTreeTrainer {
                     }
                 }
             }
+            avgPerceptron=null;
             writer.flush();
             writer.close();
             long end=System.currentTimeMillis();
@@ -253,8 +255,8 @@ public class PartialTreeTrainer {
         }
     }
 
-
     private static boolean isPunc(String pos){
-        return (pos.equals(".") || pos.equals(",") || pos.equals(":") || pos.equals("(") || pos.equals("(") ) ;
+        return (pos.equals(".") || pos.equals(",") || pos.equals(":") || pos.equals("(") || pos.equals(")")  || pos.equals("-LRB-") || pos.equals("-RRB-")
+                || pos.equals("#") || pos.equals("$")  || pos.equals("''")|| pos.equals("``")) ;
     }
 }

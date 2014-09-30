@@ -17,26 +17,27 @@ import java.util.ArrayList;
 
 public class SanityCheckTest {
     public static void main(String[] args) throws Exception {
-        System.out.println("Hello world!");
-        String trainPath = "/Users/msr/Projects/mstparser_0.2/MSTParser/data/train.lab";
-        String devPath = "/Users/msr/Projects/mstparser_0.2/MSTParser/data/test.lab";
+        String trainPath = "/Users/msr/Desktop/full.mst";
+        String devPath = "/Users/msr/Desktop//dev.wsj.auto.mst";
         String modelPath = "/Users/msr/Projects/mstparser_0.2/MSTParser/data/model";
-        boolean useDynamTrain = false;
+        boolean useDynamTrain = true;
         boolean labeled = false;
 
-        boolean random = false;
+        boolean weighted = false;
         if (args.length >= 5) {
             trainPath = args[0];
             devPath = args[1];
             modelPath = args[2];
-            random = Boolean.parseBoolean(args[3]);
+            weighted = Boolean.parseBoolean(args[3]);
             useDynamTrain = Boolean.parseBoolean(args[4]);
             labeled = Boolean.parseBoolean(args[5]);
         }
 
-        AveragedPerceptron perceptron = new AveragedPerceptron(44);
+        System.out.println("weighted:\t" + weighted);
 
-        ArrayList<Sentence> trainData = MSTReader.readSentences(trainPath, random);
+        AveragedPerceptron perceptron = labeled?new AveragedPerceptron(64): new AveragedPerceptron(44);
+
+        ArrayList<Sentence> trainData = MSTReader.readSentences(trainPath, weighted);
         ArrayList<Sentence> devData = MSTReader.readSentences(devPath, false);
         ArrayList<String> possibleLabels = new ArrayList<String>();
         if (labeled) {
@@ -53,6 +54,9 @@ public class SanityCheckTest {
 
         if (possibleLabels.size() == 0)
             possibleLabels.add("");
+
+        System.err.println("labeled: "+labeled+" with "+possibleLabels.size()+" possibilities");
+
 
         PartialTreeTrainer.train(trainData, devData, possibleLabels, perceptron, modelPath, 30, useDynamTrain, modelPath + ".out");
     }

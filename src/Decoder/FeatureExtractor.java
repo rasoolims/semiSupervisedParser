@@ -131,14 +131,19 @@ public class FeatureExtractor {
         features[index++]=hPrevP+"|"+hp+"|"+cp+"|"+cNextP;
 
 
-        if(!label.equals("")){
+        if( !label.equals("")){
             /**
              * From Table 1(b) in the paper
              */
+        try{
             features[index++] = hwp + "|" + cwp+"|"+label;
             features[index++] = hwp + "|" + cwp + "|" + distance+"|"+label;
             features[index++] = hwp + "|" + cwp + "|" + direction+"|"+label;
 
+        }
+        catch (Exception ex){
+            System.err.println(label);
+        }
             features[index++] = hp + "|" + cwp+"|"+label;
             features[index++] = hp + "|" + cwp + "|" + distance+"|"+label;
             features[index++] = hp + "|" + cwp + "|" + direction+"|"+label;
