@@ -113,53 +113,52 @@ public class FeatureExtractor {
         features[index++] = inBetweenFeatures;
 
         String hNextP = "";
-        if (headIndex < sentence.length()-1)
+        if (headIndex < sentence.length() - 1)
             hNextP = sentence.pos(headIndex + 1);
         String hPrevP = "";
         if (headIndex > 0)
             hPrevP = sentence.pos(headIndex - 1);
         String cNextP = "";
-        if (childIndex < sentence.length()-1)
+        if (childIndex < sentence.length() - 1)
             cNextP = sentence.pos(childIndex + 1);
         String cPrevP = "";
         if (childIndex > 0)
             cPrevP = sentence.pos(childIndex - 1);
 
-        features[index++]=hp+"|"+hNextP+"|"+cPrevP+"|"+cp;
-        features[index++]=hPrevP+"|"+hp+"|"+cPrevP+"|"+cp;
-        features[index++]=hp+"|"+hNextP+"|"+cp+"|"+cNextP;
-        features[index++]=hPrevP+"|"+hp+"|"+cp+"|"+cNextP;
+        features[index++] = hp + "|" + hNextP + "|" + cPrevP + "|" + cp;
+        features[index++] = hPrevP + "|" + hp + "|" + cPrevP + "|" + cp;
+        features[index++] = hp + "|" + hNextP + "|" + cp + "|" + cNextP;
+        features[index++] = hPrevP + "|" + hp + "|" + cp + "|" + cNextP;
 
 
-        if( !label.equals("")){
+        if (!label.equals("")) {
             /**
              * From Table 1(b) in the paper
              */
-        try{
-            features[index++] = hwp + "|" + cwp+"|"+label;
-            features[index++] = hwp + "|" + cwp + "|" + distance+"|"+label;
-            features[index++] = hwp + "|" + cwp + "|" + direction+"|"+label;
+            try {
+                features[index++] = hwp + "|" + cwp + "|" + label;
+                features[index++] = hwp + "|" + cwp + "|" + distance + "|" + label;
+                features[index++] = hwp + "|" + cwp + "|" + direction + "|" + label;
 
-        }
-        catch (Exception ex){
-            System.err.println(label);
-        }
-            features[index++] = hp + "|" + cwp+"|"+label;
-            features[index++] = hp + "|" + cwp + "|" + distance+"|"+label;
-            features[index++] = hp + "|" + cwp + "|" + direction+"|"+label;
+            } catch (Exception ex) {
+                System.err.println(label);
+            }
+            features[index++] = hp + "|" + cwp + "|" + label;
+            features[index++] = hp + "|" + cwp + "|" + distance + "|" + label;
+            features[index++] = hp + "|" + cwp + "|" + direction + "|" + label;
 
-            features[index++] = hw + "|" + cwp+"|"+label;
-            features[index++] = hw + "|" + cwp + "|" + distance+"|"+label;
-            features[index++] = hw + "|" + cwp + "|" + direction+"|"+label;
+            features[index++] = hw + "|" + cwp + "|" + label;
+            features[index++] = hw + "|" + cwp + "|" + distance + "|" + label;
+            features[index++] = hw + "|" + cwp + "|" + direction + "|" + label;
 
-            features[index++] = hwp + "|" + cp+"|"+label;
-            features[index++] = hwp + "|" + cp + "|" + distance+"|"+label;
-            features[index++] = hwp + "|" + cp + "|" + direction+"|"+label;
+            features[index++] = hwp + "|" + cp + "|" + label;
+            features[index++] = hwp + "|" + cp + "|" + distance + "|" + label;
+            features[index++] = hwp + "|" + cp + "|" + direction + "|" + label;
 
 
-            features[index++] = hwp + "|" + cw+"|"+label;
-            features[index++] = hwp + "|" + cw + "|" + distance+"|"+label;
-            features[index++] = hwp + "|" + cw + "|" + direction+"|"+label;
+            features[index++] = hwp + "|" + cw + "|" + label;
+            features[index++] = hwp + "|" + cw + "|" + distance + "|" + label;
+            features[index++] = hwp + "|" + cw + "|" + direction + "|" + label;
 
             /**
              * From Table 1(c) in the paper
@@ -167,7 +166,7 @@ public class FeatureExtractor {
             HashMap<String, Integer> inBetweenFeatures2 = new HashMap<String, Integer>();
             for (int i = Math.min(headIndex, childIndex) + 1; i < Math.max(headIndex, childIndex); i++) {
                 String bp = sentence.pos(i);
-                String mixFeat = hp + "|" + bp + "|" + cp+"|"+label;
+                String mixFeat = hp + "|" + bp + "|" + cp + "|" + label;
                 if (!inBetweenFeatures2.containsKey(maxFeatureLength))
                     inBetweenFeatures2.put(mixFeat, 1);
                 else
@@ -175,10 +174,10 @@ public class FeatureExtractor {
             }
             features[index++] = inBetweenFeatures2;
 
-            features[index++]=hp+"|"+hNextP+"|"+cPrevP+"|"+cp+"|"+label;
-            features[index++]=hPrevP+"|"+hp+"|"+cPrevP+"|"+cp+"|"+label;
-            features[index++]=hp+"|"+hNextP+"|"+cp+"|"+cNextP+"|"+label;
-            features[index++]=hPrevP+"|"+hp+"|"+cp+"|"+cNextP+"|"+label;
+            features[index++] = hp + "|" + hNextP + "|" + cPrevP + "|" + cp + "|" + label;
+            features[index++] = hPrevP + "|" + hp + "|" + cPrevP + "|" + cp + "|" + label;
+            features[index++] = hp + "|" + hNextP + "|" + cp + "|" + cNextP + "|" + label;
+            features[index++] = hPrevP + "|" + hp + "|" + cp + "|" + cNextP + "|" + label;
         }
 
         return features;

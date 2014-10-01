@@ -27,7 +27,7 @@ public class GraphBasedParser {
         int l = sentence.length();
         int dimension = classifier.dimension();
         double[][] scores = new double[l][l];
-        String[][] bestLabel=new String[l][l];
+        String[][] bestLabel = new String[l][l];
 
         int[] finalDeps = new int[l];
         finalDeps[0] = -1;
@@ -36,22 +36,22 @@ public class GraphBasedParser {
 
         // getting first-order attachment scores
         for (int i = 0; i < l; i++) {
-            for (int j = i+1; j < l; j++) {
-                scores[i][j]=Double.NEGATIVE_INFINITY;
-                scores[j][i]=Double.NEGATIVE_INFINITY;
-                    for (int d = 0; d < labels.size(); d++) {
-                        String label = labels.get(d);
-                        double score1 = classifier.score(FeatureExtractor.extractFeatures(sentence, i, j, label, dimension), decode);
-                        if(score1>scores[i][j]){
-                            scores[i][j]=score1;
-                            bestLabel[i][j]=label;
-                        }
-                        double score2  = classifier.score(FeatureExtractor.extractFeatures(sentence, j,i, label, dimension), decode);
-                        if(score2>scores[j][i]){
-                            scores[j][i]=score2;
-                            bestLabel[j][i]=label;
-                        }
+            for (int j = i + 1; j < l; j++) {
+                scores[i][j] = Double.NEGATIVE_INFINITY;
+                scores[j][i] = Double.NEGATIVE_INFINITY;
+                for (int d = 0; d < labels.size(); d++) {
+                    String label = labels.get(d);
+                    double score1 = classifier.score(FeatureExtractor.extractFeatures(sentence, i, j, label, dimension), decode);
+                    if (score1 > scores[i][j]) {
+                        scores[i][j] = score1;
+                        bestLabel[i][j] = label;
                     }
+                    double score2 = classifier.score(FeatureExtractor.extractFeatures(sentence, j, i, label, dimension), decode);
+                    if (score2 > scores[j][i]) {
+                        scores[j][i] = score2;
+                        bestLabel[j][i] = label;
+                    }
+                }
             }
         }
 
@@ -60,11 +60,11 @@ public class GraphBasedParser {
          completeness: 0=incomplete, 1=complete
          **/
 
-        int right=0;
-        int left=1;
+        int right = 0;
+        int left = 1;
 
-        int complete=1;
-        int incomplete=0;
+        int complete = 1;
+        int incomplete = 0;
 
         double[][][][] c = new double[l][l][2][2];
         // back pointer for dependencies
@@ -86,7 +86,7 @@ public class GraphBasedParser {
                 c[s][t][left][incomplete] = Double.NEGATIVE_INFINITY;
                 c[s][t][right][incomplete] = Double.NEGATIVE_INFINITY;
                 for (int r = s; r < t; r++) {
-                    String bestRightLabel =  bestLabel[s][t];
+                    String bestRightLabel = bestLabel[s][t];
                     double bestRightScore = scores[s][t];
                     String bestLeftLabel = bestLabel[t][s];
                     double bestLeftScore = scores[t][s];
@@ -134,7 +134,178 @@ public class GraphBasedParser {
 
         retrieveDeps(bd, bl, 0, l - 1, 0, 1, finalLabels, finalDeps);
 
-       return new Sentence(sentence.getWords(),sentence.getTags(),finalDeps,finalLabels);
+        return new Sentence(sentence.getWords(), sentence.getTags(), finalDeps, finalLabels);
+    }
+
+    public Sentence eisnerFake2ndOrder(Sentence sentence, boolean decode) {
+        int l = sentence.length();
+        int dimension = classifier.dimension();
+        double[][] scores = new double[l][l];
+        String[][] bestLabel = new String[l][l];
+
+        int[] finalDeps = new int[l];
+        finalDeps[0] = -1;
+        String[] finalLabels = new String[l];
+        finalLabels[0] = "";
+
+        // getting first-order attachment scores
+        for (int i = 0; i < l; i++) {
+            for (int j = i + 1; j < l; j++) {
+                scores[i][j] = Double.NEGATIVE_INFINITY;
+                scores[j][i] = Double.NEGATIVE_INFINITY;
+                for (int d = 0; d < labels.size(); d++) {
+                    String label = labels.get(d);
+                    double score1 = classifier.score(FeatureExtractor.extractFeatures(sentence, i, j, label, dimension), decode);
+                    if (score1 > scores[i][j]) {
+                        scores[i][j] = score1;
+                        bestLabel[i][j] = label;
+                    }
+                    double score2 = classifier.score(FeatureExtractor.extractFeatures(sentence, j, i, label, dimension), decode);
+                    if (score2 > scores[j][i]) {
+                        scores[j][i] = score2;
+                        bestLabel[j][i] = label;
+                    }
+                }
+            }
+        }
+
+
+        /**
+         direction: 0=right, 1=left
+         completeness: 0=incomplete, 1=complete
+         **/
+
+        int right = 0;
+        int left = 1;
+        int neutral = 2;
+
+        int complete = 1;
+        int incomplete = 0;
+        int rectangular = 2;
+
+        double[][][][] c = new double[l][l][3][3];
+        // back pointer for dependencies
+        int[][][][] bd = new int[l][l][3][3];
+        // back pointer for dependency labels
+        String[][][][] bl = new String[l][l][3][3];
+
+        // initialization
+        for (int s = 0; s < l; s++) {
+            for (int d = 0; d < 3; d++) {
+                for (int cn = 0; cn < 3; cn++) {
+                    c[s][s][d][cn] = 0.0;
+                }
+            }
+        }
+
+        for (int k = 1; k < l; k++) {
+            for (int s = 0; s < l; s++) {
+                int t = s + k;
+                if (t >= l) break;
+
+                // creating sibling items
+                double maxValue=Double.NEGATIVE_INFINITY;
+                int maxR=s;
+                for (int r = s; r < t; r++) {
+                    double newValue = c[s][r][right][complete] + c[r + 1][t][left][complete];
+                    if (newValue > maxValue) {
+                        maxValue = newValue;
+                      maxR = r;
+                    }
+                }
+                c[s][t][neutral][rectangular] = maxValue;
+                bd[s][t][neutral][rectangular]=maxR;
+
+
+
+                // first case: head picks up first modifier
+                String bestRightLabel = bestLabel[s][t];
+                double bestRightScore = scores[s][t];
+                String bestLeftLabel = bestLabel[t][s];
+                double bestLeftScore = scores[t][s];
+
+                c[s][t][left][incomplete] = c[s][t - 1][right][complete] + c[t][t][left][complete] + bestLeftScore;
+                bd[s][t][left][incomplete] = t - 1;
+                bl[s][t][left][incomplete] = bestLeftLabel;
+                c[s][t][right][incomplete] = c[s][s][right][complete] + c[s + 1][t][left][complete] + bestRightScore;
+                bd[s][t][right][incomplete] = s;
+                bl[s][t][right][incomplete] = bestRightLabel;
+
+
+
+                // second case: head picks up a pair of modifiers (through a sibling item)
+                for (int r = s; r < t; r++) {
+                    // first case: head picks up first modifier
+                    double bestRightScore2 = 0.0;
+                    double bestLeftScore2 = 0.0;
+
+
+                    if (isPP(sentence.pos(s))) {
+                        bestRightScore2 = -Double.MAX_VALUE;
+                    }
+                    if (isPP(sentence.pos(t))) {
+                        bestLeftScore2 = -Double.MAX_VALUE;
+                    }
+
+                    if(isVerb(sentence.pos(s)) && isNOUN(sentence.pos(r)) && isNOUN(sentence.pos(t))){
+                        bestRightScore=-Double.MAX_VALUE;
+                    }
+                    if(isVerb(sentence.pos(t)) && isNOUN(sentence.pos(r)) && isNOUN(sentence.pos(s))){
+                        bestLeftScore=-Double.MAX_VALUE;
+                    }
+
+
+
+                    double newValue = c[s][r][neutral][rectangular] + c[r][t][left][incomplete] + bestLeftScore + bestLeftScore2;
+                    if (newValue > c[s][t][left][incomplete]) {
+                        c[s][t][left][incomplete] = newValue;
+                        bd[s][t][left][incomplete] = r;
+                        bl[s][t][left][incomplete] = bestLeftLabel;
+                    }
+
+                    newValue = c[s][r][right][incomplete] + c[r][t][neutral][rectangular] + bestRightScore + bestRightScore2;
+                    if (newValue > c[s][t][right][incomplete]) {
+                        c[s][t][right][incomplete] = newValue;
+                        bd[s][t][right][incomplete] = r;
+                        bl[s][t][right][incomplete] = bestRightLabel;
+                    }
+                }
+
+
+                // create complete items
+
+                double maxLeftValue=Double.NEGATIVE_INFINITY;
+                int maxLeftR=s;
+                int maxRightR=t;
+                double maxRightValue=  Double.NEGATIVE_INFINITY;
+                for (int r = s; r <= t; r++) {
+                    if (r < t) {
+                        double newLeftScore = c[s][r][left][complete] + c[r][t][left][incomplete];
+                        if (newLeftScore >maxLeftValue) {
+                            maxLeftValue = newLeftScore;
+                            maxLeftR = r;
+                            //    bl[s][t][left][complete] = bl[r][t][left][0];
+                        }
+                    }
+
+                    if (r > s) {
+                        double newRightScore = c[s][r][right][incomplete] + c[r][t][right][complete];
+                        if (newRightScore > maxRightValue) {
+                            maxRightValue = newRightScore;
+                            maxRightR = r;
+                            //    bl[s][t][right][complete] =bl[s][r][right][0];
+                        }
+                    }
+                }
+                c[s][t][left][complete]=maxLeftValue;
+                bd[s][t][left][complete]=maxLeftR;
+                c[s][t][right][complete]=maxRightValue;
+                bd[s][t][right][complete]=maxRightR;
+            }
+        }
+        retrieve2ndDeps(bd, bl, 0, l - 1, 0, 1, finalLabels, finalDeps);
+
+        return new Sentence(sentence.getWords(), sentence.getTags(), finalDeps, finalLabels);
     }
 
     public void retrieveDeps(int[][][][] bd, String[][][][] bl, int s, int t, int direction,
@@ -164,5 +335,66 @@ public class GraphBasedParser {
                 finalLabels[s] = bl[s][t][direction][completeness];
             }
         }
+    }
+
+    public void retrieve2ndDeps(int[][][][] bd, String[][][][] bl, int s, int t, int direction,
+                                int completeness, String[] finalLabels, int[] finalDeps) {
+
+        if (s == t)
+            return;
+
+        int r = bd[s][t][direction][completeness];
+      /*  if(r<s || r>t)
+            if(direction==0)
+                r=t;
+            else
+                r=s;
+        */
+        if (completeness == 1) {
+            if (direction == 0) {
+                retrieve2ndDeps(bd, bl, s, r, 0, 0, finalLabels, finalDeps);
+                retrieve2ndDeps(bd, bl, r, t, 0, 1, finalLabels, finalDeps);
+            } else if (direction == 1) {
+                retrieve2ndDeps(bd, bl, s, r, 1, 1, finalLabels, finalDeps);
+                retrieve2ndDeps(bd, bl, r, t, 1, 0, finalLabels, finalDeps);
+            }
+        } else if (completeness == 0) {
+            if (direction == 0) {
+                finalDeps[t] = s;
+                finalLabels[t] = bl[s][t][direction][completeness];
+
+                if (r > s && (t - s) != 1 && t > r) {
+                    retrieve2ndDeps(bd, bl, s, r, 0, 0, finalLabels, finalDeps);
+                    retrieve2ndDeps(bd, bl, r, t, 2, 2, finalLabels, finalDeps);
+                } else {
+                    retrieve2ndDeps(bd, bl, s + 1, t, 1, 1, finalLabels, finalDeps);
+                }
+
+            } else if (direction == 1) {
+                finalDeps[s] = t;
+                finalLabels[s] = bl[s][t][direction][completeness];
+                if (t > r && (t - s) != 1 && r > s) {
+                    retrieve2ndDeps(bd, bl, s, r, 2, 2, finalLabels, finalDeps);
+                    retrieve2ndDeps(bd, bl, r, t, 1, 0, finalLabels, finalDeps);
+                } else {
+                    retrieve2ndDeps(bd, bl, s, t - 1, 0, 1, finalLabels, finalDeps);
+                }
+            }
+        } else {
+            retrieve2ndDeps(bd, bl, s, r, 0, 1, finalLabels, finalDeps);
+            retrieve2ndDeps(bd, bl, r + 1, t, 1, 1, finalLabels, finalDeps);
+        }
+    }
+
+    public boolean isPP(String pos) {
+        return (pos.equals("TO") || pos.equals("IN") || pos.equals("ADP"));
+    }
+
+    public boolean isNOUN(String pos) {
+        return (pos.startsWith("NN") || pos.equals("NOUN") || pos.equals("N"));
+    }
+
+    public boolean isVerb(String pos) {
+        return (pos.startsWith("V"));
     }
 }

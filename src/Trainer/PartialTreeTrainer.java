@@ -225,7 +225,7 @@ public class PartialTreeTrainer {
             double unlabeledAccuracy = 100.0 * unlabelCorrect / allDeps;
             System.out.println(String.format("unlabeled: %s labeled: %s", unlabeledAccuracy, labeledAccuracy));
 
-
+            System.out.print("\nParsing dev file with Eisner 1st order algorithm...");
             labelCorrect = 0;
             unlabelCorrect = 0;
             allDeps = 0;
@@ -262,7 +262,6 @@ public class PartialTreeTrainer {
                     }
                 }
             }
-            avgPerceptron=null;
             writer.flush();
             writer.close();
             long end=System.currentTimeMillis();
@@ -274,6 +273,62 @@ public class PartialTreeTrainer {
             labeledAccuracy = 100.0 * labelCorrect / allDeps;
             unlabeledAccuracy = 100.0 * unlabelCorrect / allDeps;
             System.out.println(String.format("unlabeled: %s labeled: %s", unlabeledAccuracy, labeledAccuracy));
+
+            System.out.print("\nParsing dev file with linguistic constraints...");
+
+            labelCorrect = 0;
+            unlabelCorrect = 0;
+            allDeps = 0;
+            senCount = 0;
+            writer=new BufferedWriter(new FileWriter(outPath+"_iter_2nd_"+iter));
+
+            start=System.currentTimeMillis();
+            for (Sentence sentence : devSentences) {
+              //  if(senCount==78){
+              //      System.out.print("HERE");
+              //  }
+                Sentence parseTree = parser.eisnerFake2ndOrder(sentence, true);
+                writer.write(parseTree.toString());
+                senCount++;
+                if (senCount % 100 == 0) {
+                    System.out.print(senCount + "...");
+                }
+
+                for (int ch = 1; ch < sentence.length(); ch++) {
+                    if (sentence.hasHead(ch) &&  !punctuations.contains(sentence.pos(ch))) {
+                        allDeps++;
+                        int goldHead = sentence.head(ch);
+                        String goldLabel = sentence.label(ch);
+                        int argmax = parseTree.head(ch);
+
+                        try {
+                            String bestLabel = parseTree.label(ch);
+
+                            if (argmax == goldHead) {
+                                unlabelCorrect++;
+                                if (bestLabel.equals(goldLabel))
+                                    labelCorrect++;
+                            }
+                        } catch (Exception ex) {
+                            System.out.print("Why?");
+                        }
+                    }
+                }
+            }
+            writer.flush();
+            writer.close();
+             end=System.currentTimeMillis();
+            timeSec=(1.0*(end-start))/devSentences.size();
+            System.out.println("");
+            System.out.println("time for each sentence: " + timeSec);
+
+
+            labeledAccuracy = 100.0 * labelCorrect / allDeps;
+            unlabeledAccuracy = 100.0 * unlabelCorrect / allDeps;
+            System.out.println(String.format("unlabeled: %s labeled: %s", unlabeledAccuracy, labeledAccuracy));
+
+
+            avgPerceptron=null;
 
         }
     }
