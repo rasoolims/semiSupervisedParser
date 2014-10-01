@@ -9,6 +9,7 @@ package Trainer;
         import java.io.FileWriter;
         import java.util.ArrayList;
         import java.util.HashMap;
+        import java.util.HashSet;
 
 /**
  * Created by Mohammad Sadegh Rasooli.
@@ -20,6 +21,28 @@ package Trainer;
 public class PartialTreeTrainer {
     public static void train(ArrayList<Sentence> trainSentences, ArrayList<Sentence> devSentences, ArrayList<String> possibleLabels,
                              AveragedPerceptron perceptron, String modelPath, int maxIter, boolean trainStructuredForFullTrees,String outPath) throws Exception {
+
+       HashSet<String> punctuations = new HashSet<String>();
+        punctuations.add("#");
+        punctuations.add("$");
+        punctuations.add("''");
+        punctuations.add("(");
+        punctuations.add(")");
+        punctuations.add("[");
+        punctuations.add("]");
+        punctuations.add("{");
+        punctuations.add("}");
+        punctuations.add("\"");
+        punctuations.add(",");
+        punctuations.add(".");
+        punctuations.add(":");
+        punctuations.add("``");
+        punctuations.add("-LRB-");
+        punctuations.add("-RRB-");
+        punctuations.add("-LSB-");
+        punctuations.add("-RSB-");
+        punctuations.add("-LCB-");
+        punctuations.add("-RCB-");
 
         int dimension = perceptron.dimension();
 
@@ -167,7 +190,7 @@ public class PartialTreeTrainer {
                     System.out.print(senCount + "...");
                 }
                 for (int ch = 1; ch < sentence.length(); ch++) {
-                    if (sentence.hasHead(ch) && !isPunc(sentence.pos(ch))) {
+                    if (sentence.hasHead(ch) && !punctuations.contains(sentence.pos(ch))) {
                         allDeps++;
                         // finding the best head
                         int goldHead = sentence.head(ch);
@@ -219,7 +242,7 @@ public class PartialTreeTrainer {
                 }
 
                 for (int ch = 1; ch < sentence.length(); ch++) {
-                    if (sentence.hasHead(ch) &&  !isPunc(sentence.pos(ch))) {
+                    if (sentence.hasHead(ch) &&  !punctuations.contains(sentence.pos(ch))) {
                         allDeps++;
                         int goldHead = sentence.head(ch);
                         String goldLabel = sentence.label(ch);
