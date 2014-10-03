@@ -146,53 +146,9 @@ public class PartialTreeTrainer {
 
             GraphBasedParser parser = new GraphBasedParser(avgPerceptron, possibleLabels);
 
-            System.out.print("\nParsing dev file...");
-
             int labelCorrect = 0;
             int unlabelCorrect = 0;
             int allDeps = 0;
-            senCount = 0;
-
-            for (Sentence sentence : devSentences) {
-                senCount++;
-                if (senCount % 100 == 0) {
-                    System.out.print(senCount + "...");
-                }
-                for (int ch = 1; ch < sentence.length(); ch++) {
-                    if (sentence.hasHead(ch) && !punctuations.contains(sentence.pos(ch))) {
-                        allDeps++;
-                        // finding the best head
-                        int goldHead = sentence.head(ch);
-                        String goldLabel = sentence.label(ch);
-
-                        int argmax = 0;
-                        String bestLabel = "";
-                        double max = Double.NEGATIVE_INFINITY;
-
-                        for (String label : possibleLabels) {
-                            for (int h = 0; h < sentence.length(); h++) {
-                                double score = avgPerceptron.score(FeatureExtractor.extract1stOrderFeatures(sentence, h, ch), true);
-                                if (score > max) {
-                                    max = score;
-                                    bestLabel = label;
-                                    argmax = h;
-                                }
-                            }
-                        }
-
-                        if (argmax == goldHead) {
-                            unlabelCorrect++;
-                            if (bestLabel.equals(goldLabel))
-                                labelCorrect++;
-                        }
-                    }
-                }
-            }
-            System.out.println("");
-
-            double labeledAccuracy = 100.0 * labelCorrect / allDeps;
-            double unlabeledAccuracy = 100.0 * unlabelCorrect / allDeps;
-            System.out.println(String.format("unlabeled: %s labeled: %s", unlabeledAccuracy, labeledAccuracy));
 
             System.out.print("\nParsing dev file with Eisner 1st order algorithm...");
             labelCorrect = 0;
@@ -239,8 +195,8 @@ public class PartialTreeTrainer {
             System.out.println("time for each sentence: " + timeSec);
 
 
-            labeledAccuracy = 100.0 * labelCorrect / allDeps;
-            unlabeledAccuracy = 100.0 * unlabelCorrect / allDeps;
+           double labeledAccuracy = 100.0 * labelCorrect / allDeps;
+          double  unlabeledAccuracy = 100.0 * unlabelCorrect / allDeps;
             System.out.println(String.format("unlabeled: %s labeled: %s", unlabeledAccuracy, labeledAccuracy));
             avgPerceptron = null;
         }

@@ -36,10 +36,11 @@ public class SanityCheckTest {
         }
 
         System.out.println("weighted:\t" + weighted);
+        System.out.println("second_order:\t" + secondOrder);
 
         AveragedPerceptron perceptron =   new AveragedPerceptron(1);
-                if(!secondOrder)
-                    perceptron=labeled?new AveragedPerceptron(64): new AveragedPerceptron(44);
+        //        if(!secondOrder)
+         //           perceptron=labeled?new AveragedPerceptron(64): new AveragedPerceptron(44);
 
         ArrayList<Sentence> trainData = MSTReader.readSentences(trainPath, weighted);
         ArrayList<Sentence> devData = MSTReader.readSentences(devPath, false);
