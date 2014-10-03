@@ -25,31 +25,15 @@ public class GraphBasedParser {
     public Sentence eisner1stOrder(Sentence sentence, boolean decode) {
         int l = sentence.length();
         double[][] scores = new double[l][l];
-        String[][] bestLabel = new String[l][l];
 
         int[] finalDeps = new int[l];
         finalDeps[0] = -1;
-        String[] finalLabels = new String[l];
-        finalLabels[0] = "";
 
         // getting first-order attachment scores
         for (int i = 0; i < l; i++) {
             for (int j = i + 1; j < l; j++) {
-                scores[i][j] = Double.NEGATIVE_INFINITY;
-                scores[j][i] = Double.NEGATIVE_INFINITY;
-                for (int d = 0; d < labels.size(); d++) {
-                    String label = labels.get(d);
-                    double score1 = classifier.score(FeatureExtractor.extract1stOrderFeatures(sentence, i, j), decode);
-                    if (score1 > scores[i][j]) {
-                        scores[i][j] = score1;
-                        bestLabel[i][j] = label;
-                    }
-                    double score2 = classifier.score(FeatureExtractor.extract1stOrderFeatures(sentence, j, i), decode);
-                    if (score2 > scores[j][i]) {
-                        scores[j][i] = score2;
-                        bestLabel[j][i] = label;
-                    }
-                }
+                scores[i][j] =classifier.score(FeatureExtractor.extract1stOrderFeatures(sentence, i, j), decode);
+                scores[j][i] =  classifier.score(FeatureExtractor.extract1stOrderFeatures(sentence, j, i), decode);
             }
         }
 
@@ -68,7 +52,6 @@ public class GraphBasedParser {
         // back pointer for dependencies
         int[][][][] bd = new int[l][l][2][2];
         // back pointer for dependency labels
-        String[][][][] bl = new String[l][l][2][2];
         for (int s = 0; s < l; s++) {
             c[s][s][right][complete] = 0.0;
             c[s][s][left][complete] = 0.0;
@@ -84,9 +67,7 @@ public class GraphBasedParser {
                 c[s][t][left][incomplete] = Double.NEGATIVE_INFINITY;
                 c[s][t][right][incomplete] = Double.NEGATIVE_INFINITY;
                 for (int r = s; r < t; r++) {
-                    String bestRightLabel = bestLabel[s][t];
                     double bestRightScore = scores[s][t];
-                    String bestLeftLabel = bestLabel[t][s];
                     double bestLeftScore = scores[t][s];
 
 
@@ -94,14 +75,12 @@ public class GraphBasedParser {
                     if (newLeftValue > c[s][t][left][incomplete]) {
                         c[s][t][left][incomplete] = newLeftValue;
                         bd[s][t][left][incomplete] = r;
-                        bl[s][t][left][incomplete] = bestLeftLabel;
                     }
 
                     double newRightValue = c[s][r][right][complete] + c[r + 1][t][left][complete] + bestRightScore;
                     if (newRightValue > c[s][t][right][incomplete]) {
                         c[s][t][right][incomplete] = newRightValue;
                         bd[s][t][right][incomplete] = r;
-                        bl[s][t][right][incomplete] = bestRightLabel;
                     }
                 }
 
@@ -130,9 +109,9 @@ public class GraphBasedParser {
             }
         }
 
-        retrieveDeps(bd, bl, 0, l - 1, 0, 1, finalLabels, finalDeps);
+        retrieveDeps(bd,  0, l - 1, 0, 1, finalDeps);
 
-        return new Sentence(sentence.getWords(), sentence.getTags(), finalDeps, finalLabels);
+        return new Sentence(sentence.getWords(), sentence.getTags(), finalDeps);
     }
 
     public Sentence eisner2ndOrder(Sentence sentence, boolean decode) {
@@ -140,8 +119,6 @@ public class GraphBasedParser {
 
         int[] finalDeps = new int[l];
         finalDeps[0] = -1;
-        String[] finalLabels = new String[l];
-        finalLabels[0] = "";
 
         /**
          direction: 0=right, 1=left
@@ -159,7 +136,6 @@ public class GraphBasedParser {
         // back pointer for dependencies
         int[][][][] bd = new int[l][l][3][3];
         // back pointer for dependency labels
-        String[][][][] bl = new String[l][l][3][3];
 
         // initialization
         for (int s = 0; s < l; s++) {
@@ -202,10 +178,8 @@ public class GraphBasedParser {
 
                 c[s][t][left][incomplete] = c[s][t - 1][right][complete] + c[t][t][left][complete] + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, t, 0, s), decode)+scores[t][s];
                 bd[s][t][left][incomplete] = t;
-                bl[s][t][left][incomplete] = "_";
                 c[s][t][right][incomplete] = c[s][s][right][complete] + c[s + 1][t][left][complete]  + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, s, 0, t), decode)+scores[s][t];
                 bd[s][t][right][incomplete] = s;
-                bl[s][t][right][incomplete] = "_";
 
 
                 // second case: head picks up a pair of modifiers (through a sibling item)
@@ -216,7 +190,6 @@ public class GraphBasedParser {
                         if (newValue > c[s][t][left][incomplete]) {
                             c[s][t][left][incomplete] = newValue;
                             bd[s][t][left][incomplete] = r;
-                            bl[s][t][left][incomplete] = "_";
                         }
                     }
 
@@ -225,7 +198,6 @@ public class GraphBasedParser {
                         if (newValue > c[s][t][right][incomplete]) {
                             c[s][t][right][incomplete] = newValue;
                             bd[s][t][right][incomplete] = r;
-                            bl[s][t][right][incomplete] = "_";
                         }
                     }
                 }
@@ -264,44 +236,41 @@ public class GraphBasedParser {
                 bd[s][t][right][complete]=maxRightR;
             }
         }
-        retrieve2ndDeps(bd, bl, 0, l - 1, 0, 1, finalLabels, finalDeps);
+        retrieve2ndDeps(bd, 0, l - 1, 0, 1, finalDeps);
 
-        return new Sentence(sentence.getWords(), sentence.getTags(), finalDeps, finalLabels);
+        return new Sentence(sentence.getWords(), sentence.getTags(), finalDeps);
     }
 
 
-    public void retrieveDeps(int[][][][] bd, String[][][][] bl, int s, int t, int direction,
-                             int completeness, String[] finalLabels, int[] finalDeps) {
+    public void retrieveDeps(int[][][][] bd, int s, int t, int direction,
+                             int completeness, int[] finalDeps) {
         if (s == t)
             return;
         int r = bd[s][t][direction][completeness];
         if (completeness == 1) {
             if (direction == 0) {
-                retrieveDeps(bd, bl, s, r, 0, 0, finalLabels, finalDeps);
-                retrieveDeps(bd, bl, r, t, 0, 1, finalLabels, finalDeps);
+                retrieveDeps(bd, s, r, 0, 0, finalDeps);
+                retrieveDeps(bd,  r, t, 0, 1, finalDeps);
             } else {
-                retrieveDeps(bd, bl, s, r, 1, 1, finalLabels, finalDeps);
-                retrieveDeps(bd, bl, r, t, 1, 0, finalLabels, finalDeps);
+                retrieveDeps(bd,  s, r, 1, 1, finalDeps);
+                retrieveDeps(bd,  r, t, 1, 0, finalDeps);
             }
         } else {
             if (direction == 0) {
                 finalDeps[t] = s;
-                retrieveDeps(bd, bl, s, r, 0, 1, finalLabels, finalDeps);
-                retrieveDeps(bd, bl, r + 1, t, 1, 1, finalLabels, finalDeps);
-                finalLabels[t] = bl[s][t][direction][completeness];
+                retrieveDeps(bd,s, r, 0, 1, finalDeps);
+                retrieveDeps(bd,  r + 1, t, 1, 1, finalDeps);
 
             } else {
                 finalDeps[s] = t;
-                retrieveDeps(bd, bl, s, r, 0, 1, finalLabels, finalDeps);
-                retrieveDeps(bd, bl, r + 1, t, 1, 1, finalLabels, finalDeps);
-                finalLabels[s] = bl[s][t][direction][completeness];
+                retrieveDeps(bd, s, r, 0, 1, finalDeps);
+                retrieveDeps(bd,  r + 1, t, 1, 1, finalDeps);
             }
         }
     }
 
-    public void retrieve2ndDeps(int[][][][] bd, String[][][][] bl, int s, int t, int direction,
-                                int completeness, String[] finalLabels, int[] finalDeps) {
-
+    public void retrieve2ndDeps(int[][][][] bd,int s, int t, int direction,
+                                int completeness, int[] finalDeps) {
         if (s == t)
             return;
 
@@ -309,36 +278,34 @@ public class GraphBasedParser {
 
         if (completeness == 1) {
             if (direction == 0) {
-                retrieve2ndDeps(bd, bl, s, r, 0, 0, finalLabels, finalDeps);
-                retrieve2ndDeps(bd, bl, r, t, 0, 1, finalLabels, finalDeps);
+                retrieve2ndDeps(bd, s, r, 0, 0, finalDeps);
+                retrieve2ndDeps(bd, r, t, 0, 1,  finalDeps);
             } else if (direction == 1) {
-                retrieve2ndDeps(bd, bl, s, r, 1, 1, finalLabels, finalDeps);
-                retrieve2ndDeps(bd, bl, r, t, 1, 0, finalLabels, finalDeps);
+                retrieve2ndDeps(bd, s, r, 1, 1, finalDeps);
+                retrieve2ndDeps(bd, r, t, 1, 0,  finalDeps);
             }
         } else if (completeness == 0) {
             if (direction == 0) {
                 finalDeps[t] = s;
-                finalLabels[t] = bl[s][t][direction][completeness];
 
                 if (r > s && t>r ) {
-                    retrieve2ndDeps(bd, bl, s, r, 0, 0, finalLabels, finalDeps);
-                    retrieve2ndDeps(bd, bl, r, t, 2, 2, finalLabels, finalDeps);
+                    retrieve2ndDeps(bd, s, r, 0, 0,  finalDeps);
+                    retrieve2ndDeps(bd, r, t, 2, 2, finalDeps);
                 } else {
-                    retrieve2ndDeps(bd, bl, s + 1, t, 1, 1, finalLabels, finalDeps);
+                    retrieve2ndDeps(bd, s + 1, t, 1, 1,  finalDeps);
                 }
             } else if (direction == 1) {
                 finalDeps[s] = t;
-                finalLabels[s] = bl[s][t][direction][completeness];
                 if (r > s && t > r ) {
-                    retrieve2ndDeps(bd, bl, s, r, 2, 2, finalLabels, finalDeps);
-                    retrieve2ndDeps(bd, bl, r, t, 1, 0, finalLabels, finalDeps);
+                    retrieve2ndDeps(bd, s, r, 2, 2,finalDeps);
+                    retrieve2ndDeps(bd, r, t, 1, 0,  finalDeps);
                 } else {
-                    retrieve2ndDeps(bd, bl, s, t -1, 0, 1, finalLabels, finalDeps);
+                    retrieve2ndDeps(bd, s, t -1, 0, 1, finalDeps);
                 }
             }
         } else {
-            retrieve2ndDeps(bd, bl, s, r, 0, 1, finalLabels, finalDeps);
-            retrieve2ndDeps(bd, bl, r + 1, t, 1, 1, finalLabels, finalDeps);
+            retrieve2ndDeps(bd, s, r, 0, 1,  finalDeps);
+            retrieve2ndDeps(bd, r + 1, t, 1, 1, finalDeps);
         }
     }
 

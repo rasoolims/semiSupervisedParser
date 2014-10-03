@@ -22,7 +22,7 @@ public class SanityCheckTest {
         String modelPath = "/Users/msr/Projects/mstparser_0.2/MSTParser/data/model";
         boolean useDynamTrain = true;
         boolean labeled = false;
-        boolean secondOrder=true;
+        boolean secondOrder=false;
 
         boolean weighted = false;
         if (args.length >= 6) {

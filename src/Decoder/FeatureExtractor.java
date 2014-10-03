@@ -16,8 +16,8 @@ import java.util.HashMap;
 public class FeatureExtractor {
     public static ArrayList<String> extract2ndOrderFeatures(Sentence sentence, int headIndex, int childIndex, int secondChildIndex) {
         ArrayList<String> features = new ArrayList<String>();
-       // if(true)
-        //   return features;
+        if(true)
+           return features;
 
         String cw1 = "_";
         String cp1 = "_";
@@ -29,7 +29,6 @@ public class FeatureExtractor {
         String cw2 = sentence.word(secondChildIndex);
         String cp2 = sentence.pos(secondChildIndex);
 
-        String hw = sentence.word(headIndex);
         String hp = sentence.pos(headIndex);
         String direction = "l";
         int distance = 0;
@@ -46,37 +45,37 @@ public class FeatureExtractor {
         String tempFeat = "";
 
         // second order features
-        tempFeat = "p_ijk:" + hp + "|" + cp1 + "|" + cp2;
+        tempFeat = "2p_ijk:" + hp + "|" + cp1 + "|" + cp2;
         features.add(tempFeat);
      //   tempFeat = "p_ijk_dr:" + hp + "|" + cp1 + "|" + cp2 + "|" + direction;
      //   features.add(tempFeat);
-        tempFeat = "p_ijk_d:" + hp + "|" + cp1 + "|" + cp2 + "|" + distance+"|"+direction;
+        tempFeat = "2p_ijk_d:" + hp + "|" + cp1 + "|" + cp2 + "|" + distance+"|"+direction;
         features.add(tempFeat);
 
-        tempFeat = "pp_jk:" + cp1 + "|" + cp2;
+        tempFeat = "2pp_jk:" + cp1 + "|" + cp2;
         features.add(tempFeat);
-        tempFeat = "pp_jk_d:" + cp1 + "|" + cp2 + "|" + distance+"|"+direction;
+        tempFeat = "2pp_jk_d:" + cp1 + "|" + cp2 + "|" + distance+"|"+direction;
         features.add(tempFeat);
       //  tempFeat = "pp_jk_dr:" + cp1 + "|" + cp2 + "|" + direction;
       //  features.add(tempFeat);
 
-        tempFeat = "pw_jk:" + cp1 + "|" + cw2;
+        tempFeat = "2pw_jk:" + cp1 + "|" + cw2;
         features.add(tempFeat);
-        tempFeat = "pw_jk_d:" + cp1 + "|" + cw2 + "|" + distance+"|"+direction;
+        tempFeat = "2pw_jk_d:" + cp1 + "|" + cw2 + "|" + distance+"|"+direction;
         features.add(tempFeat);
        // tempFeat = "pw_jk_dr:" + cp1 + "|" + cw2 + "|" + direction;
       //  features.add(tempFeat);
 
-        tempFeat = "wp_jk:" + cw1 + "|" + cp2;
+        tempFeat = "2wp_jk:" + cw1 + "|" + cp2;
         features.add(tempFeat);
-        tempFeat = "wp_jk_d:" + cw1 + "|" + cp2 + "|" + distance+"|"+direction;
+        tempFeat = "2wp_jk_d:" + cw1 + "|" + cp2 + "|" + distance+"|"+direction;
         features.add(tempFeat);
        // tempFeat = "wp_jk_dr:" + cw1 + "|" + cp2 + "|" + direction;
        // features.add(tempFeat);
 
-        tempFeat = "ww_jk:" + cw1 + "|" + cw2;
+        tempFeat = "2ww_jk:" + cw1 + "|" + cw2;
         features.add(tempFeat);
-        tempFeat = "ww_jk_d:" + cw1 + "|" + cw2 + "|" + distance+"|"+direction;
+        tempFeat = "2ww_jk_d:" + cw1 + "|" + cw2 + "|" + distance+"|"+direction;
         features.add(tempFeat);
     //    tempFeat = "ww_jk_dr:" + cw1 + "|" + cw2 + "|" + direction;
      //   features.add(tempFeat);

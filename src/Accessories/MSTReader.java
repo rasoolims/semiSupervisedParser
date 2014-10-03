@@ -77,8 +77,8 @@ public class MSTReader {
             Sentence sentence = new Sentence(sWords, sTags, sHead, sLabels,confidence);
             sentences.add(sentence);
             sen_num++;
-          //  if(sen_num>3000)
-            //    break;
+            if(sen_num>3000)
+                break;
             if (sen_num % 10000 == 0) {
                 System.err.print(sen_num + "...");
             }
