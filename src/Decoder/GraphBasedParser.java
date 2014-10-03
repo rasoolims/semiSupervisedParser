@@ -93,7 +93,6 @@ public class GraphBasedParser {
                         if (newLeftScore > c[s][t][left][complete]) {
                             c[s][t][left][complete] = newLeftScore;
                             bd[s][t][left][complete] = r;
-                            //    bl[s][t][left][complete] = bl[r][t][left][0];
                         }
                     }
 
@@ -102,7 +101,6 @@ public class GraphBasedParser {
                         if (newRightScore > c[s][t][right][complete]) {
                             c[s][t][right][complete] = newRightScore;
                             bd[s][t][right][complete] = r;
-                            //    bl[s][t][right][complete] =bl[s][r][right][0];
                         }
                     }
                 }
@@ -135,7 +133,6 @@ public class GraphBasedParser {
         double[][][][] c = new double[l][l][3][3];
         // back pointer for dependencies
         int[][][][] bd = new int[l][l][3][3];
-        // back pointer for dependency labels
 
         // initialization
         for (int s = 0; s < l; s++) {
@@ -146,12 +143,12 @@ public class GraphBasedParser {
             }
         }
 
-        double[][] scores = new double[l][l];
+        double[][] firstOrderScores = new double[l][l];
         // getting first-order attachment scores
         for (int i = 0; i < l; i++) {
             for (int j = i + 1; j < l; j++) {
-                scores[i][j] = classifier.score(FeatureExtractor.extract1stOrderFeatures(sentence, i, j), decode);
-                scores[j][i] =classifier.score(FeatureExtractor.extract1stOrderFeatures(sentence, j, i), decode);
+                firstOrderScores[i][j] = classifier.score(FeatureExtractor.extract1stOrderFeatures(sentence, i, j), decode);
+                firstOrderScores[j][i] =classifier.score(FeatureExtractor.extract1stOrderFeatures(sentence, j, i), decode);
             }
         }
 
@@ -170,23 +167,21 @@ public class GraphBasedParser {
                         maxR = r;
                     }
                 }
-                if(maxValue==Double.NEGATIVE_INFINITY){
-                    System.out.print("here");
-                }
+
                 c[s][t][neutral][rectangular] = maxValue;
                 bd[s][t][neutral][rectangular]=maxR;
 
-                c[s][t][left][incomplete] = c[s][t - 1][right][complete] + c[t][t][left][complete] + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, t, 0, s), decode)+scores[t][s];
+                c[s][t][left][incomplete] = c[s][t - 1][right][complete] + c[t][t][left][complete] + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, t, 0, s), decode)+firstOrderScores[t][s];
                 bd[s][t][left][incomplete] = t;
-                c[s][t][right][incomplete] = c[s][s][right][complete] + c[s + 1][t][left][complete]  + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, s, 0, t), decode)+scores[s][t];
+                c[s][t][right][incomplete] = c[s][s][right][complete] + c[s + 1][t][left][complete]  + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, s, 0, t), decode)+firstOrderScores[s][t];
                 bd[s][t][right][incomplete] = s;
 
 
                 // second case: head picks up a pair of modifiers (through a sibling item)
-                for (int r = s; r < t; r++) {
+                for (int r = s+1; r < t; r++) {
                     // first case: head picks up first modifier
                     if(r<t) {
-                        double newValue = c[s][r][neutral][rectangular] + c[r][t][left][incomplete] + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, t, r, s), decode) + scores[t][s] ;
+                        double newValue = c[s][r][neutral][rectangular] + c[r][t][left][incomplete] + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, t, r, s), decode) + firstOrderScores[t][s] ;
                         if (newValue > c[s][t][left][incomplete]) {
                             c[s][t][left][incomplete] = newValue;
                             bd[s][t][left][incomplete] = r;
@@ -194,7 +189,7 @@ public class GraphBasedParser {
                     }
 
                     if(r>s) {
-                      double  newValue = c[s][r][right][incomplete] + c[r][t][neutral][rectangular] + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, s, r, t), decode) + scores[s][t] ;
+                      double  newValue = c[s][r][right][incomplete] + c[r][t][neutral][rectangular] + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, s, r, t), decode) + firstOrderScores[s][t] ;
                         if (newValue > c[s][t][right][incomplete]) {
                             c[s][t][right][incomplete] = newValue;
                             bd[s][t][right][incomplete] = r;
@@ -213,7 +208,6 @@ public class GraphBasedParser {
                         if (newLeftScore >maxLeftValue) {
                             maxLeftValue = newLeftScore;
                             maxLeftR = r;
-                            //    bl[s][t][left][complete] = bl[r][t][left][0];
                         }
                     }
 
@@ -222,12 +216,8 @@ public class GraphBasedParser {
                         if (newRightScore > maxRightValue) {
                             maxRightValue = newRightScore;
                             maxRightR = r;
-                            //    bl[s][t][right][complete] =bl[s][r][right][0];
                         }
                     }
-                }
-                if(maxRightValue==Double.NEGATIVE_INFINITY){
-                    System.out.print("HERE!");
                 }
 
                 c[s][t][left][complete]=maxLeftValue;

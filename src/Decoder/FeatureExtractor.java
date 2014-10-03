@@ -16,8 +16,8 @@ import java.util.HashMap;
 public class FeatureExtractor {
     public static ArrayList<String> extract2ndOrderFeatures(Sentence sentence, int headIndex, int childIndex, int secondChildIndex) {
         ArrayList<String> features = new ArrayList<String>();
-        if(true)
-           return features;
+       // if(true)
+       //    return features;
 
         String cw1 = "_";
         String cp1 = "_";
