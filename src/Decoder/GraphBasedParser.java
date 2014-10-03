@@ -12,7 +12,6 @@ import java.util.ArrayList;
  * Time: 11:06 AM
  * To report any bugs or problems contact rasooli@cs.columbia.edu
  */
-
 public class GraphBasedParser {
     AveragedPerceptron classifier;
     ArrayList<String> labels;
@@ -137,44 +136,18 @@ public class GraphBasedParser {
         return new Sentence(sentence.getWords(), sentence.getTags(), finalDeps, finalLabels);
     }
 
-    public Sentence eisnerFake2ndOrder(Sentence sentence, boolean decode) {
+    public Sentence eisner2ndOrder(Sentence sentence, boolean decode) {
         int l = sentence.length();
-        int dimension = classifier.dimension();
-        double[][] scores = new double[l][l];
-        String[][] bestLabel = new String[l][l];
 
         int[] finalDeps = new int[l];
         finalDeps[0] = -1;
         String[] finalLabels = new String[l];
         finalLabels[0] = "";
 
-        // getting first-order attachment scores
-        for (int i = 0; i < l; i++) {
-            for (int j = i + 1; j < l; j++) {
-                scores[i][j] = Double.NEGATIVE_INFINITY;
-                scores[j][i] = Double.NEGATIVE_INFINITY;
-                for (int d = 0; d < labels.size(); d++) {
-                    String label = labels.get(d);
-                    double score1 = classifier.score(FeatureExtractor.extractFeatures(sentence, i, j, label, dimension), decode);
-                    if (score1 > scores[i][j]) {
-                        scores[i][j] = score1;
-                        bestLabel[i][j] = label;
-                    }
-                    double score2 = classifier.score(FeatureExtractor.extractFeatures(sentence, j, i, label, dimension), decode);
-                    if (score2 > scores[j][i]) {
-                        scores[j][i] = score2;
-                        bestLabel[j][i] = label;
-                    }
-                }
-            }
-        }
-
-
         /**
          direction: 0=right, 1=left
          completeness: 0=incomplete, 1=complete
          **/
-
         int right = 0;
         int left = 1;
         int neutral = 2;
@@ -198,6 +171,15 @@ public class GraphBasedParser {
             }
         }
 
+        double[][] scores = new double[l][l];
+        // getting first-order attachment scores
+        for (int i = 0; i < l; i++) {
+            for (int j = i + 1; j < l; j++) {
+                scores[i][j] = classifier.score(FeatureExtractor.extract1stOrderFeatures(sentence, i, j), decode);
+                scores[j][i] =classifier.score(FeatureExtractor.extract1stOrderFeatures(sentence, j, i), decode);
+            }
+        }
+
         for (int k = 1; k < l; k++) {
             for (int s = 0; s < l; s++) {
                 int t = s + k;
@@ -210,70 +192,43 @@ public class GraphBasedParser {
                     double newValue = c[s][r][right][complete] + c[r + 1][t][left][complete];
                     if (newValue > maxValue) {
                         maxValue = newValue;
-                      maxR = r;
+                        maxR = r;
                     }
                 }
                 c[s][t][neutral][rectangular] = maxValue;
                 bd[s][t][neutral][rectangular]=maxR;
 
-
-
-                // first case: head picks up first modifier
-                String bestRightLabel = bestLabel[s][t];
-                double bestRightScore = scores[s][t];
-                String bestLeftLabel = bestLabel[t][s];
-                double bestLeftScore = scores[t][s];
-
-                c[s][t][left][incomplete] = c[s][t - 1][right][complete] + c[t][t][left][complete] + bestLeftScore;
-                bd[s][t][left][incomplete] = t - 1;
-                bl[s][t][left][incomplete] = bestLeftLabel;
-                c[s][t][right][incomplete] = c[s][s][right][complete] + c[s + 1][t][left][complete] + bestRightScore;
+                c[s][t][left][incomplete] = c[s][t - 1][right][complete] + c[t][t][left][complete] + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, t, 0, s), decode)+scores[t][s];
+                bd[s][t][left][incomplete] = t-1;
+                bl[s][t][left][incomplete] = "_";
+                c[s][t][right][incomplete] = c[s][s][right][complete] + c[s + 1][t][left][complete]  + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, s, 0, t), decode)+scores[s][t];
                 bd[s][t][right][incomplete] = s;
-                bl[s][t][right][incomplete] = bestRightLabel;
-
+                bl[s][t][right][incomplete] = "_";
 
 
                 // second case: head picks up a pair of modifiers (through a sibling item)
-                for (int r = s; r < t; r++) {
+                for (int r = s; r <= t; r++) {
                     // first case: head picks up first modifier
-                    double bestRightScore2 = 0.0;
-                    double bestLeftScore2 = 0.0;
-
-
-                    if (isPP(sentence.pos(s))) {
-                        bestRightScore2 = -Double.MAX_VALUE;
-                    }
-                    if (isPP(sentence.pos(t))) {
-                        bestLeftScore2 = -Double.MAX_VALUE;
+                    if(r<t) {
+                        double newValue = c[s][r][neutral][rectangular] + c[r][t][left][incomplete] + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, t, r, s), decode) + scores[t][s] ;
+                        if (newValue > c[s][t][left][incomplete]) {
+                            c[s][t][left][incomplete] = newValue;
+                            bd[s][t][left][incomplete] = r;
+                            bl[s][t][left][incomplete] = "_";
+                        }
                     }
 
-                    if(isVerb(sentence.pos(s)) && isNOUN(sentence.pos(r)) && isNOUN(sentence.pos(t))){
-                        bestRightScore=-Double.MAX_VALUE;
-                    }
-                    if(isVerb(sentence.pos(t)) && isNOUN(sentence.pos(r)) && isNOUN(sentence.pos(s))){
-                        bestLeftScore=-Double.MAX_VALUE;
-                    }
-
-
-
-                    double newValue = c[s][r][neutral][rectangular] + c[r][t][left][incomplete] + bestLeftScore + bestLeftScore2;
-                    if (newValue > c[s][t][left][incomplete]) {
-                        c[s][t][left][incomplete] = newValue;
-                        bd[s][t][left][incomplete] = r;
-                        bl[s][t][left][incomplete] = bestLeftLabel;
-                    }
-
-                    newValue = c[s][r][right][incomplete] + c[r][t][neutral][rectangular] + bestRightScore + bestRightScore2;
-                    if (newValue > c[s][t][right][incomplete]) {
-                        c[s][t][right][incomplete] = newValue;
-                        bd[s][t][right][incomplete] = r;
-                        bl[s][t][right][incomplete] = bestRightLabel;
+                    if(r>s) {
+                      double  newValue = c[s][r][right][incomplete] + c[r][t][neutral][rectangular] + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, s, r, t), decode) + scores[s][t] ;
+                        if (newValue > c[s][t][right][incomplete]) {
+                            c[s][t][right][incomplete] = newValue;
+                            bd[s][t][right][incomplete] = r;
+                            bl[s][t][right][incomplete] = "_";
+                        }
                     }
                 }
 
-
                 // create complete items
-
                 double maxLeftValue=Double.NEGATIVE_INFINITY;
                 int maxLeftR=s;
                 int maxRightR=t;
@@ -307,6 +262,7 @@ public class GraphBasedParser {
 
         return new Sentence(sentence.getWords(), sentence.getTags(), finalDeps, finalLabels);
     }
+
 
     public void retrieveDeps(int[][][][] bd, String[][][][] bl, int s, int t, int direction,
                              int completeness, String[] finalLabels, int[] finalDeps) {
@@ -344,12 +300,7 @@ public class GraphBasedParser {
             return;
 
         int r = bd[s][t][direction][completeness];
-      /*  if(r<s || r>t)
-            if(direction==0)
-                r=t;
-            else
-                r=s;
-        */
+
         if (completeness == 1) {
             if (direction == 0) {
                 retrieve2ndDeps(bd, bl, s, r, 0, 0, finalLabels, finalDeps);
@@ -363,17 +314,16 @@ public class GraphBasedParser {
                 finalDeps[t] = s;
                 finalLabels[t] = bl[s][t][direction][completeness];
 
-                if (r > s && (t - s) != 1 && t > r) {
+                if (r > s && t > r) {
                     retrieve2ndDeps(bd, bl, s, r, 0, 0, finalLabels, finalDeps);
                     retrieve2ndDeps(bd, bl, r, t, 2, 2, finalLabels, finalDeps);
                 } else {
                     retrieve2ndDeps(bd, bl, s + 1, t, 1, 1, finalLabels, finalDeps);
                 }
-
             } else if (direction == 1) {
                 finalDeps[s] = t;
                 finalLabels[s] = bl[s][t][direction][completeness];
-                if (t > r && (t - s) != 1 && r > s) {
+                if (t > r && r > s) {
                     retrieve2ndDeps(bd, bl, s, r, 2, 2, finalLabels, finalDeps);
                     retrieve2ndDeps(bd, bl, r, t, 1, 0, finalLabels, finalDeps);
                 } else {

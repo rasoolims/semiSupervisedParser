@@ -1,6 +1,7 @@
 package Classifier;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
@@ -20,7 +21,6 @@ public class AveragedPerceptron implements Serializable{
     public AveragedPerceptron(int length){
         weights=new Object[length];
         avgWeights=new Object[length];
-
 
         for(int i=0;i<length;i++){
             weights[i]=new HashMap<String, Double>(1000000);
@@ -120,6 +120,22 @@ public class AveragedPerceptron implements Serializable{
         }
         return score;
     }
+
+
+    public double score(ArrayList<String> features,boolean decode){
+        double score=0.0;
+            HashMap<String,Double> map;
+            if(decode)
+                map= (HashMap<String,Double>)avgWeights[0];
+            else
+                map= (HashMap<String,Double>)weights[0];
+        for(String feature:features){
+            if(map.containsKey(feature))
+                    score+=map.get(feature);
+        }
+        return score;
+    }
+
 
     public int dimension(){
         return avgWeights.length;
