@@ -92,6 +92,22 @@ public class Sentence {
         return tags;
     }
 
+    public void setHeads(int[] heads) {
+        this.heads = heads;
+    }
+
+    public void setLabels(String[] labels) {
+        this.labels = labels;
+    }
+
+    public int[] getHeads() {
+        return heads;
+    }
+
+    public String[] getLabels() {
+        return labels;
+    }
+
     @Override
     public String toString(){
         StringBuilder wordBuilder=new StringBuilder();

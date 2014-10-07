@@ -19,10 +19,10 @@ import java.util.HashSet;
  * To report any bugs or problems contact rasooli@cs.columbia.edu
  */
 public class PartialTreeTrainer {
-    public static void train(ArrayList<Sentence> trainSentences, ArrayList<Sentence> devSentences, ArrayList<String> possibleLabels,
-                             AveragedPerceptron perceptron, String modelPath, int maxIter, boolean trainStructuredForFullTrees, String outPath) throws Exception {
+    static HashSet<String> punctuations = new HashSet<String>();
 
-        HashSet<String> punctuations = new HashSet<String>();
+    private static void initializePuncs(){
+        punctuations = new HashSet<String>();
         punctuations.add("#");
         punctuations.add("$");
         punctuations.add("''");
@@ -43,6 +43,12 @@ public class PartialTreeTrainer {
         punctuations.add("-RSB-");
         punctuations.add("-LCB-");
         punctuations.add("-RCB-");
+    }
+
+    public static void train(ArrayList<Sentence> trainSentences, ArrayList<Sentence> devSentences, ArrayList<String> possibleLabels,
+                             AveragedPerceptron perceptron, String modelPath, int maxIter, boolean trainStructuredForFullTrees, String outPath, boolean useHandCraftedRules) throws Exception {
+
+        initializePuncs();
 
         for (int iter = 0; iter < maxIter; iter++) {
             int numDep = 0;
@@ -209,7 +215,7 @@ public class PartialTreeTrainer {
 
              start = System.currentTimeMillis();
             for (Sentence sentence : devSentences) {
-                Sentence parseTree = parser.eisner2ndOrder(sentence, true);
+                Sentence parseTree = parser.eisner2ndOrder(sentence, true,useHandCraftedRules,false);
                 writer.write(parseTree.toString());
                 senCount++;
                 if (senCount % 100 == 0) {
@@ -256,29 +262,8 @@ public class PartialTreeTrainer {
 
 
     public static void train2ndOrder(ArrayList<Sentence> trainSentences, ArrayList<Sentence> devSentences, ArrayList<String> possibleLabels,
-                                     AveragedPerceptron perceptron, String modelPath, int maxIter, String outPath) throws Exception {
-
-        HashSet<String> punctuations = new HashSet<String>();
-        punctuations.add("#");
-        punctuations.add("$");
-        punctuations.add("''");
-        punctuations.add("(");
-        punctuations.add(")");
-        punctuations.add("[");
-        punctuations.add("]");
-        punctuations.add("{");
-        punctuations.add("}");
-        punctuations.add("\"");
-        punctuations.add(",");
-        punctuations.add(".");
-        punctuations.add(":");
-        punctuations.add("``");
-        punctuations.add("-LRB-");
-        punctuations.add("-RRB-");
-        punctuations.add("-LSB-");
-        punctuations.add("-RSB-");
-        punctuations.add("-LCB-");
-        punctuations.add("-RCB-");
+                                     AveragedPerceptron perceptron, String modelPath, int maxIter, String outPath,boolean useHandCraftedRules, boolean trainPartial, int insertConstraintIter, double minDepProp) throws Exception {
+        initializePuncs();
 
         for (int iter = 0; iter < maxIter; iter++) {
             int numDep = 0;
@@ -288,6 +273,9 @@ public class PartialTreeTrainer {
             System.out.println("*********************************************************");
             System.out.println("iteration: " + iter);
             int senCount = 0;
+
+
+
             for (Sentence sentence : trainSentences) {
                 senCount++;
                 if (senCount % 100 == 0) {
@@ -301,7 +289,7 @@ public class PartialTreeTrainer {
                     }
                 }
                 if (isCompleteTree) {
-                    Sentence parseTree = trainParser.eisner2ndOrder(sentence, false);
+                    Sentence parseTree = trainParser.eisner2ndOrder(sentence, false,useHandCraftedRules,false);
                     boolean theSame = true;
                     for (int ch = 1; ch < sentence.length(); ch++) {
                         numDep++;
@@ -452,6 +440,44 @@ public class PartialTreeTrainer {
                         }
                     }
                     perceptron.incrementIteration();
+                }   else if(trainPartial && iter>=insertConstraintIter){
+                    /// just train first order factors
+                    for (int ch = 1; ch < sentence.length(); ch++) {
+                        if (sentence.hasHead(ch)) {
+                            numDep++;
+                            // finding the best head
+                            int goldHead = sentence.head(ch);
+                            String goldLabel = sentence.label(ch);
+
+                            int argmax = 0;
+                            String bestLabel = "";
+                            double max = Double.NEGATIVE_INFINITY;
+
+                            for (String label : possibleLabels) {
+                                for (int h = 0; h < sentence.length(); h++) {
+                                    double score = perceptron.score(FeatureExtractor.extract1stOrderFeatures(sentence, h, ch), false);
+                                    if (score > max) {
+                                        max = score;
+                                        bestLabel = label;
+                                        argmax = h;
+                                    }
+                                }
+                            }
+
+                            if (argmax != goldHead || bestLabel.equals(goldLabel)) {
+                                ArrayList<String> predictedFeatures = FeatureExtractor.extract1stOrderFeatures(sentence, argmax, ch);
+                                ArrayList<String> goldFeatures = FeatureExtractor.extract1stOrderFeatures(sentence, goldHead, ch);
+
+                                for(String predicted:predictedFeatures)
+                                    perceptron.updateWeight(0,predicted,-1);
+                                for(String gold:goldFeatures)
+                                    perceptron.updateWeight(0,gold,1);
+                            } else {
+                                correct++;
+                            }
+                        }
+                    }
+                    perceptron.incrementIteration();
                 }
             }
             System.out.println("");
@@ -485,7 +511,7 @@ public class PartialTreeTrainer {
                 //  if(senCount==78){
                 //      System.out.print("HERE");
                 //  }
-                Sentence parseTree = parser.eisner2ndOrder(sentence, true);
+                Sentence parseTree = parser.eisner2ndOrder(sentence, true,true,false);
                 writer.write(parseTree.toString());
                 senCount++;
                 if (senCount % 100 == 0) {
@@ -525,6 +551,33 @@ public class PartialTreeTrainer {
             double unlabeledAccuracy = 100.0 * unlabelCorrect / allDeps;
             System.out.println(String.format("unlabeled: %s labeled: %s", unlabeledAccuracy, labeledAccuracy));
 
+
+
+            // todo parsing with constraints
+            if(insertConstraintIter==iter+1){
+                System.out.println("parsing with constraints... ");
+                int numAll=0;
+                for (int ins=0;ins<trainSentences.size();ins++ ) {
+                    if (ins % 1000 == 0) {
+                        System.out.print(ins + "...");
+                    }
+                    Sentence sentence =trainSentences.get(ins);
+                    int numDeps=0;
+                    for (int ch = 1; ch < sentence.length(); ch++) {
+                        if (sentence.hasHead(ch)) {
+                            numDeps++;
+                        }
+                    }
+                    if(numDeps<sentence.length()-1 && ((double)numDeps/(sentence.length()-1)) > minDepProp){
+                        Sentence parseTree = parser.eisner2ndOrder(sentence, true,useHandCraftedRules,true);
+                        sentence.setHeads(parseTree.getHeads());
+                        sentence.setLabels(parseTree.getLabels());
+                        numAll++;
+                    }
+                }
+                System.out.println("\n added "+numAll+" trees");
+            }
+            System.out.println("");
 
             avgPerceptron = null;
 

@@ -112,7 +112,8 @@ public class GraphBasedParser {
         return new Sentence(sentence.getWords(), sentence.getTags(), finalDeps);
     }
 
-    public Sentence eisner2ndOrder(Sentence sentence, boolean decode) {
+    public Sentence eisner2ndOrder(Sentence sentence, boolean decode, boolean useHandcraftedConstraints, boolean constrained) {
+
         int l = sentence.length();
 
         int[] finalDeps = new int[l];
@@ -147,8 +148,15 @@ public class GraphBasedParser {
         // getting first-order attachment scores
         for (int i = 0; i < l; i++) {
             for (int j = i + 1; j < l; j++) {
+                if(!constrained || !sentence.hasHead(j) || sentence.head(j)==i)
                 firstOrderScores[i][j] = classifier.score(FeatureExtractor.extract1stOrderFeatures(sentence, i, j), decode);
-                firstOrderScores[j][i] =classifier.score(FeatureExtractor.extract1stOrderFeatures(sentence, j, i), decode);
+                else {
+                    firstOrderScores[i][j] = Double.NEGATIVE_INFINITY;
+                }
+                if(!constrained || !sentence.hasHead(i) || sentence.head(i)==j)
+                            firstOrderScores[j][i] =classifier.score(FeatureExtractor.extract1stOrderFeatures(sentence, j, i), decode);
+                else
+                    firstOrderScores[j][i] = Double.NEGATIVE_INFINITY;
             }
         }
 
@@ -179,21 +187,38 @@ public class GraphBasedParser {
 
                 // second case: head picks up a pair of modifiers (through a sibling item)
                 for (int r = s+1; r < t; r++) {
-                    // first case: head picks up first modifier
-                    if(r<t) {
-                        double newValue = c[s][r][neutral][rectangular] + c[r][t][left][incomplete] + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, t, r, s), decode) + firstOrderScores[t][s] ;
-                        if (newValue > c[s][t][left][incomplete]) {
-                            c[s][t][left][incomplete] = newValue;
-                            bd[s][t][left][incomplete] = r;
+                    double newValue = c[s][r][neutral][rectangular] + c[r][t][left][incomplete] + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, t, r, s), decode) + firstOrderScores[t][s];
+
+                    if(useHandcraftedConstraints){
+                        if(isPP(sentence.pos(t))){
+                            newValue=Double.NEGATIVE_INFINITY;
+                        }
+
+                        if(isVerb(sentence.pos(t))){
+                            if(isNOUN(sentence.pos(r)) && isNOUN(sentence.pos(s)))
+                                newValue=Double.NEGATIVE_INFINITY;
                         }
                     }
 
-                    if(r>s) {
-                      double  newValue = c[s][r][right][incomplete] + c[r][t][neutral][rectangular] + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, s, r, t), decode) + firstOrderScores[s][t] ;
-                        if (newValue > c[s][t][right][incomplete]) {
-                            c[s][t][right][incomplete] = newValue;
-                            bd[s][t][right][incomplete] = r;
+                    if (newValue > c[s][t][left][incomplete]) {
+                        c[s][t][left][incomplete] = newValue;
+                        bd[s][t][left][incomplete] = r;
+                    }
+
+                    newValue = c[s][r][right][incomplete] + c[r][t][neutral][rectangular] + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, s, r, t), decode) + firstOrderScores[s][t];
+                    if(useHandcraftedConstraints){
+                        if(isPP(sentence.pos(s))){
+                            newValue=Double.NEGATIVE_INFINITY;
                         }
+
+                        if(isVerb(sentence.pos(s))){
+                            if(isNOUN(sentence.pos(r)) && isNOUN(sentence.pos(t)))
+                                newValue=Double.NEGATIVE_INFINITY;
+                        }
+                    }
+                    if (newValue > c[s][t][right][incomplete]) {
+                        c[s][t][right][incomplete] = newValue;
+                        bd[s][t][right][incomplete] = r;
                     }
                 }
 
