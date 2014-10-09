@@ -29,24 +29,24 @@ public class SanityCheckTest {
         double contrainMinumumRatioDeps=1.0;
 
         boolean weighted = false;
-        if (args.length > 6) {
+        if (args.length > 3) {
             trainPath = args[0];
             devPath = args[1];
             modelPath = args[2];
-            weighted = Boolean.parseBoolean(args[3]);
-            useDynamTrain = Boolean.parseBoolean(args[4]);
-            labeled = Boolean.parseBoolean(args[5]);
-            secondOrder=Boolean.parseBoolean(args[6]);
+          //  useDynamTrain = Boolean.parseBoolean(args[4]);
+           // labeled = Boolean.parseBoolean(args[4]);
+            secondOrder=Boolean.parseBoolean(args[3]);
+            if(args.length>4)
+                useHandCraftedRules     =Boolean.parseBoolean(args[4]);
+            if(args.length>5)
+                trainPartial     =Boolean.parseBoolean(args[5]);
+            if(args.length>6)
+                constrainedIterNum     =Integer.parseInt(args[6]);
             if(args.length>7)
-                useHandCraftedRules     =Boolean.parseBoolean(args[7]);
-            if(args.length>8)
-                trainPartial     =Boolean.parseBoolean(args[8]);
-            if(args.length>9)
-                constrainedIterNum     =Integer.parseInt(args[9]);
-            if(args.length>10)
-                contrainMinumumRatioDeps     =Double.parseDouble(args[10]);
+                contrainMinumumRatioDeps     =Double.parseDouble(args[7]);
         } else{
-            System.out.println("arguments: [train_path(mst_file)] [dev_path(mst_file)] [model_output_path] [is_weighted(bool)] [use_dynamic_programming_train(bool)] [is_labeled(temporary not wordking)] [is_2nd_order(bool)] [use_linguistic_heuristics(bool)] [train_2nd_order_on_partial_trees(bool)]");
+            System.out.println("arguments: [train_path(mst_file)] [dev_path(mst_file)] [model_output_path]  [is_2nd_order(bool)]" +
+                    " [use_linguistic_heuristics(bool)] [train_2nd_order_on_partial_trees(bool)] [constrainedIterNum] [contrainMinumumRatioDeps]");
         }
 
         System.out.println("dyn_train:\t" + useDynamTrain);

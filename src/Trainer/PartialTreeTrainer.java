@@ -278,7 +278,7 @@ public class PartialTreeTrainer {
 
             for (Sentence sentence : trainSentences) {
                 senCount++;
-                if (senCount % 100 == 0) {
+                if (senCount % 1000 == 0) {
                     System.out.print(senCount + "...");
                 }
                 boolean isCompleteTree = true;

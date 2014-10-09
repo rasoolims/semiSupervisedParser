@@ -205,7 +205,14 @@ public class GraphBasedParser {
                         bd[s][t][left][incomplete] = r;
                     }
 
+
                     newValue = c[s][r][right][incomplete] + c[r][t][neutral][rectangular] + classifier.score(FeatureExtractor.extract2ndOrderFeatures(sentence, s, r, t), decode) + firstOrderScores[s][t];
+
+                    // todo single root constraint
+                   //  if(s==0)
+                       //  newValue=Double.NEGATIVE_INFINITY;
+
+
                     if(useHandcraftedConstraints){
                         if(isPP(sentence.pos(s))){
                             newValue=Double.NEGATIVE_INFINITY;
