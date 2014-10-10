@@ -13,36 +13,28 @@ import java.util.HashMap;
  */
 
 public class AveragedPerceptron implements Serializable{
-    Object[] weights;
-    Object[] avgWeights;
+    HashMap<String, Double> weights;
+    HashMap<String, Double> avgWeights;
     int iteration;
 
 
-    public AveragedPerceptron(int length){
-        weights=new Object[length];
-        avgWeights=new Object[length];
-
-        for(int i=0;i<length;i++){
-            weights[i]=new HashMap<String, Double>(1000000);
-            avgWeights[i]=new HashMap<String, Double>(1000000);
-        }
-        iteration=1;
+    public AveragedPerceptron() {
+        weights = new HashMap<String, Double>(1000000);
+        avgWeights = new HashMap<String, Double>(1000000);
+        iteration = 1;
     }
 
-    public void updateWeight(int slotNum, String feature, double change){
-        HashMap<String, Double> map=(HashMap<String, Double>)weights[slotNum];
-        HashMap<String, Double> avgMap=(HashMap<String, Double>)avgWeights[slotNum];
-
-        if(!map.containsKey(feature)){
-            map.put(feature,change);
+    public void updateWeight(String feature, double change){
+        if(!weights.containsKey(feature)){
+            weights.put(feature,change);
         }  else{
-            map.put(feature,map.get(feature)+change);
+            weights.put(feature,weights.get(feature)+change);
         }
 
-        if(!avgMap.containsKey(feature)){
-            avgMap.put(feature,iteration*change);
+        if(!avgWeights.containsKey(feature)){
+            avgWeights.put(feature,iteration*change);
         }  else{
-            avgMap.put(feature,avgMap.get(feature)+iteration*change);
+            avgWeights.put(feature,avgWeights.get(feature)+iteration*change);
         }
     }
 
@@ -51,19 +43,13 @@ public class AveragedPerceptron implements Serializable{
     }
 
     public void saveModel(String modelPath) throws  Exception{
-        Object[] finalAverageWeight=new Object[weights.length];
-        for(int i=0;i<weights.length;i++){
-            HashMap<String, Double> map=(HashMap<String, Double>)weights[i];
-            HashMap<String, Double> avgMap=(HashMap<String, Double>)avgWeights[i];
-            finalAverageWeight[i]=new HashMap<String, Double>();
+        HashMap<String, Double> finalAverageWeight=new  HashMap<String, Double>(avgWeights.size());
 
-            for(String feat:map.keySet()){
-                double newValue=  map.get(feat)-(avgMap.get(feat)/iteration);
+            for(String feat:weights.keySet()){
+                double newValue=  weights.get(feat)-(avgWeights.get(feat)/iteration);
                 if(newValue!=0.0)
-                ((HashMap<String, Double>)finalAverageWeight[i]).put(feat,newValue);
+                finalAverageWeight.put(feat,newValue);
             }
-        }
-
         ObjectOutput writer = new ObjectOutputStream(new FileOutputStream(modelPath));
         writer.writeObject(finalAverageWeight);
         writer.flush();
@@ -72,9 +58,9 @@ public class AveragedPerceptron implements Serializable{
 
     public static AveragedPerceptron loadModel(String modelPath) throws  Exception {
         ObjectInputStream reader = new ObjectInputStream(new FileInputStream(modelPath));
-        Object[] avgWeights= (Object[])reader.readObject();
+        HashMap<String, Double> avgWeights= (HashMap<String, Double>)reader.readObject();
 
-        AveragedPerceptron averagedPerceptron=new AveragedPerceptron(avgWeights.length);
+        AveragedPerceptron averagedPerceptron=new AveragedPerceptron();
         averagedPerceptron.avgWeights=avgWeights;
 
         return averagedPerceptron;
@@ -82,15 +68,13 @@ public class AveragedPerceptron implements Serializable{
 
     public double weight(int slotNum,String feat, boolean decode){
         if(!decode){
-            HashMap<String, Double> map=(HashMap<String, Double>)weights[slotNum];
-            if(map.containsKey(feat))
-                return map.get(feat);
+            if(weights.containsKey(feat))
+                return weights.get(feat);
             else
                 return 0;
         }   else{
-                HashMap<String, Double> map=(HashMap<String, Double>)avgWeights[slotNum];
-                if(map.containsKey(feat))
-                    return map.get(feat);
+                if(avgWeights.containsKey(feat))
+                    return avgWeights.get(feat);
                 else
                     return 0;
         }
@@ -101,9 +85,9 @@ public class AveragedPerceptron implements Serializable{
         for(int i=0;i<features.length;i++){
             HashMap<String,Double> map;
             if(decode)
-                map= (HashMap<String,Double>)avgWeights[i];
+                map= avgWeights;
             else
-                map= (HashMap<String,Double>)weights[i];
+                map= weights;
             if(features[i] instanceof String){
                 if(map.containsKey(features[i]))
                      score+=map.get(features[i]);
@@ -126,9 +110,9 @@ public class AveragedPerceptron implements Serializable{
         double score=0.0;
             HashMap<String,Double> map;
             if(decode)
-                map= (HashMap<String,Double>)avgWeights[0];
+                map= avgWeights;
             else
-                map= (HashMap<String,Double>)weights[0];
+                map= weights;
         for(String feature:features){
             if(map.containsKey(feature))
                     score+=map.get(feature);
@@ -137,14 +121,7 @@ public class AveragedPerceptron implements Serializable{
     }
 
 
-    public int dimension(){
-        return avgWeights.length;
-    }
-
     public int size(){
-        int size=0;
-        for(int i=0;i<avgWeights.length;i++)
-            size+=((HashMap<String,Double>)avgWeights[i]).size();
-        return size;
+        return avgWeights.size();
     }
 }

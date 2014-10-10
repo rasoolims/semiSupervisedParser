@@ -99,9 +99,9 @@ public class PartialTreeTrainer {
                                 ArrayList<String> goldFeatures = FeatureExtractor.extract1stOrderFeatures(sentence, goldHead, ch);
 
                                 for(String predicted:predictedFeatures)
-                                    perceptron.updateWeight(0,predicted,-1);
+                                    perceptron.updateWeight(predicted,-1);
                                 for(String gold:goldFeatures)
-                                    perceptron.updateWeight(0,gold,1);
+                                    perceptron.updateWeight(gold,1);
                             } else {
                                 correct++;
                             }
@@ -127,9 +127,9 @@ public class PartialTreeTrainer {
                             ArrayList<String> goldFeatures = FeatureExtractor.extract1stOrderFeatures(sentence, goldHead, ch);
 
                             for(String predicted:predictedFeatures)
-                                perceptron.updateWeight(0,predicted,-1);
+                                perceptron.updateWeight(predicted,-1);
                             for(String gold:goldFeatures)
-                                perceptron.updateWeight(0,gold,1);
+                                perceptron.updateWeight(gold,1);
                         } else {
                             correct++;
                         }
@@ -266,7 +266,6 @@ public class PartialTreeTrainer {
                                      AveragedPerceptron perceptron, String modelPath, int maxIter, String outPath,boolean useHandCraftedRules,
                                      boolean trainPartial, int insertConstraintIter, double minDepProp, boolean iterativeConstraint,int resetPeriod,boolean alwaysPartial) throws Exception {
         initializePuncs();
-
         ArrayList<Sentence> trainSentences=  MSTReader.readSentences(trainPath,false);
 
         for (int iter = 0; iter < maxIter; iter++) {
@@ -277,8 +276,6 @@ public class PartialTreeTrainer {
             System.out.println("*********************************************************");
             System.out.println("iteration: " + iter);
             int senCount = 0;
-
-
 
             for (Sentence sentence : trainSentences) {
                 senCount++;
@@ -440,7 +437,7 @@ public class PartialTreeTrainer {
                         for (String feat : features.keySet()) {
                             double value = features.get(feat);
                             if (value != 0.0)
-                                perceptron.updateWeight(0, feat, value);
+                                perceptron.updateWeight(feat, value);
                         }
                     }
                     perceptron.incrementIteration();
@@ -473,9 +470,9 @@ public class PartialTreeTrainer {
                                 ArrayList<String> goldFeatures = FeatureExtractor.extract1stOrderFeatures(sentence, goldHead, ch);
 
                                 for(String predicted:predictedFeatures)
-                                    perceptron.updateWeight(0,predicted,-1);
+                                    perceptron.updateWeight(predicted,-1);
                                 for(String gold:goldFeatures)
-                                    perceptron.updateWeight(0,gold,1);
+                                    perceptron.updateWeight(gold,1);
                             } else {
                                 correct++;
                             }

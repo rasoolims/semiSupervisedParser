@@ -70,7 +70,7 @@ public class SanityCheckTest {
         System.out.println("iterative Constraint Period:\t" + iterativeConstraintPeriod);
         System.out.println("always Partial:\t" + alwaysPartial);
 
-        AveragedPerceptron perceptron =   new AveragedPerceptron(1);
+        AveragedPerceptron perceptron =   new AveragedPerceptron();
         //        if(!secondOrder)
          //           perceptron=labeled?new AveragedPerceptron(64): new AveragedPerceptron(44);
 
