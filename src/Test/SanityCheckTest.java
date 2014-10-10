@@ -27,6 +27,9 @@ public class SanityCheckTest {
         boolean trainPartial=false;
         int constrainedIterNum=-1;
         double contrainMinumumRatioDeps=1.0;
+        boolean iterativeConstraint=false;
+        int iterativeConstraintPeriod=3;
+        boolean alwaysPartial=false;
 
         boolean weighted = false;
         if (args.length > 3) {
@@ -44,9 +47,16 @@ public class SanityCheckTest {
                 constrainedIterNum     =Integer.parseInt(args[6]);
             if(args.length>7)
                 contrainMinumumRatioDeps     =Double.parseDouble(args[7]);
+            if(args.length>8)
+                iterativeConstraint     =Boolean.parseBoolean(args[8]);
+            if(args.length>9)
+                iterativeConstraintPeriod     =Integer.parseInt(args[9]);
+            if(args.length>10)
+                alwaysPartial     =Boolean.parseBoolean(args[10]);
         } else{
             System.out.println("arguments: [train_path(mst_file)] [dev_path(mst_file)] [model_output_path]  [is_2nd_order(bool)]" +
-                    " [use_linguistic_heuristics(bool)] [train_2nd_order_on_partial_trees(bool)] [constrainedIterNum] [contrainMinumumRatioDeps]");
+                    " [use_linguistic_heuristics(bool)] [train_2nd_order_on_partial_trees(bool)] [constrainedIterNum] [contrainMinumumRatioDeps]" +
+                    " [iterativeConstraint(bool)] [iterativeConstraintPeriod] [alwaysPartial(bool)]");
         }
 
         System.out.println("dyn_train:\t" + useDynamTrain);
@@ -56,12 +66,15 @@ public class SanityCheckTest {
         System.out.println("train_partial:\t" + trainPartial);
         System.out.println("constraint_iter:\t" + constrainedIterNum);
         System.out.println("contraint_prop:\t" + contrainMinumumRatioDeps);
+        System.out.println("iterative Constraint:\t" + iterativeConstraint);
+        System.out.println("iterative Constraint Period:\t" + iterativeConstraintPeriod);
+        System.out.println("always Partial:\t" + alwaysPartial);
 
         AveragedPerceptron perceptron =   new AveragedPerceptron(1);
         //        if(!secondOrder)
          //           perceptron=labeled?new AveragedPerceptron(64): new AveragedPerceptron(44);
 
-        ArrayList<Sentence> trainData = MSTReader.readSentences(trainPath, weighted);
+        ArrayList<Sentence> trainData=MSTReader.readSentences(trainPath,weighted);
         ArrayList<Sentence> devData = MSTReader.readSentences(devPath, false);
         ArrayList<String> possibleLabels = new ArrayList<String>();
         if (labeled) {
@@ -79,12 +92,14 @@ public class SanityCheckTest {
         if (possibleLabels.size() == 0)
             possibleLabels.add("");
 
+
         System.err.println("labeled: "+labeled+" with "+possibleLabels.size()+" possibilities");
 
-         if(!secondOrder)
-        PartialTreeTrainer.train(trainData, devData, possibleLabels, perceptron, modelPath, 30, useDynamTrain, modelPath + ".out",useHandCraftedRules);
-        else
-             PartialTreeTrainer.train2ndOrder(trainData, devData, possibleLabels, perceptron, modelPath, 30, modelPath + ".out",useHandCraftedRules,trainPartial,constrainedIterNum,contrainMinumumRatioDeps);
-
+         if(!secondOrder) {
+             PartialTreeTrainer.train(trainData, devData, possibleLabels, perceptron, modelPath, 30, useDynamTrain, modelPath + ".out", useHandCraftedRules);
+         }
+        else {
+             PartialTreeTrainer.train2ndOrder(trainPath, devData, possibleLabels, perceptron, modelPath, 30, modelPath + ".out", useHandCraftedRules, trainPartial, constrainedIterNum, contrainMinumumRatioDeps, iterativeConstraint, iterativeConstraintPeriod,alwaysPartial);
+         }
     }
 }

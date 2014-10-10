@@ -1,5 +1,6 @@
 package Trainer;
 
+import Accessories.MSTReader;
 import Classifier.AveragedPerceptron;
 import Decoder.FeatureExtractor;
 import Decoder.GraphBasedParser;
@@ -261,9 +262,12 @@ public class PartialTreeTrainer {
     }
 
 
-    public static void train2ndOrder(ArrayList<Sentence> trainSentences, ArrayList<Sentence> devSentences, ArrayList<String> possibleLabels,
-                                     AveragedPerceptron perceptron, String modelPath, int maxIter, String outPath,boolean useHandCraftedRules, boolean trainPartial, int insertConstraintIter, double minDepProp) throws Exception {
+    public static void train2ndOrder(String trainPath, ArrayList<Sentence> devSentences, ArrayList<String> possibleLabels,
+                                     AveragedPerceptron perceptron, String modelPath, int maxIter, String outPath,boolean useHandCraftedRules,
+                                     boolean trainPartial, int insertConstraintIter, double minDepProp, boolean iterativeConstraint,int resetPeriod,boolean alwaysPartial) throws Exception {
         initializePuncs();
+
+        ArrayList<Sentence> trainSentences=  MSTReader.readSentences(trainPath,false);
 
         for (int iter = 0; iter < maxIter; iter++) {
             int numDep = 0;
@@ -440,7 +444,7 @@ public class PartialTreeTrainer {
                         }
                     }
                     perceptron.incrementIteration();
-                }   else if(trainPartial && iter>=insertConstraintIter){
+                }   else if(alwaysPartial || (trainPartial && iter>=insertConstraintIter)){
                     /// just train first order factors
                     for (int ch = 1; ch < sentence.length(); ch++) {
                         if (sentence.hasHead(ch)) {
@@ -554,8 +558,47 @@ public class PartialTreeTrainer {
 
 
             // todo parsing with constraints
-            if(insertConstraintIter==iter+1){
-                System.out.println("parsing with constraints... ");
+            if(insertConstraintIter==iter+1 || (iterativeConstraint && (insertConstraintIter-iter-1)%resetPeriod==0 )){
+                System.out.print("saving full trees... ");
+                String filePath=modelPath+".full_trees.iter"+(insertConstraintIter-iter-1)/resetPeriod;
+                BufferedWriter fullTreeWriter=new BufferedWriter(new FileWriter(filePath));
+                for (Sentence sentence : trainSentences) {
+                    senCount++;
+                    if (senCount % 1000 == 0) {
+                        System.out.print(senCount + "...");
+                    }
+                    boolean isCompleteTree = true;
+                    for (int ch = 1; ch < sentence.length(); ch++) {
+                        if (!sentence.hasHead(ch)) {
+                            isCompleteTree = false;
+                            break;
+                        }
+                    }
+                    if (isCompleteTree) {
+                          StringBuilder wOutput=new StringBuilder();
+                        StringBuilder pOutput=new StringBuilder();
+                        StringBuilder lOutput=new StringBuilder();
+                        StringBuilder hOutput=new StringBuilder();
+                        for(int i=1;i<sentence.length();i++) {
+                            wOutput.append(sentence.word(i) + "\t");
+                            pOutput.append(sentence.pos(i) + "\t");
+                            lOutput.append("_"+ "\t");
+                            hOutput.append(sentence.head(i) + "\t");
+                        }
+                        fullTreeWriter.write(wOutput.toString().trim()+"\n");
+                        fullTreeWriter.write(pOutput.toString().trim()+"\n");
+                        fullTreeWriter.write(lOutput.toString().trim()+"\n");
+                        fullTreeWriter.write(hOutput.toString().trim()+"\n\n");
+                    }
+
+                }
+                fullTreeWriter.flush();
+                fullTreeWriter.close();
+                System.out.println("\n Saved to "+filePath);
+                System.out.print("\nresetting data for parsing with constraints... ");
+
+                trainSentences=  MSTReader.readSentences(trainPath,false);
+                System.out.print("\nparsing with constraints... ");
                 int numAll=0;
                 for (int ins=0;ins<trainSentences.size();ins++ ) {
                     if (ins % 1000 == 0) {
