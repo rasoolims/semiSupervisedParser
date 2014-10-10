@@ -2,6 +2,7 @@ package Trainer;
 
 import Accessories.MSTReader;
 import Classifier.AveragedPerceptron;
+import Classifier.OnlineClassifier;
 import Decoder.FeatureExtractor;
 import Decoder.GraphBasedParser;
 import Structures.Sentence;
@@ -47,14 +48,14 @@ public class PartialTreeTrainer {
     }
 
     public static void train(ArrayList<Sentence> trainSentences, ArrayList<Sentence> devSentences, ArrayList<String> possibleLabels,
-                             AveragedPerceptron perceptron, String modelPath, int maxIter, boolean trainStructuredForFullTrees, String outPath, boolean useHandCraftedRules) throws Exception {
+                             OnlineClassifier onlineClassifier, String modelPath, int maxIter, boolean trainStructuredForFullTrees, String outPath, boolean useHandCraftedRules) throws Exception {
 
         initializePuncs();
 
         for (int iter = 0; iter < maxIter; iter++) {
             int numDep = 0;
             double correct = 0;
-            GraphBasedParser trainParser = new GraphBasedParser(perceptron, possibleLabels);
+            GraphBasedParser trainParser = new GraphBasedParser(onlineClassifier, possibleLabels);
 
             System.out.println("*********************************************************");
             System.out.println("iteration: " + iter);
@@ -85,7 +86,7 @@ public class PartialTreeTrainer {
 
                             for (String label : possibleLabels) {
                                 for (int h = 0; h < sentence.length(); h++) {
-                                    double score = perceptron.score(FeatureExtractor.extract1stOrderFeatures(sentence, h, ch), false);
+                                    double score = onlineClassifier.score(FeatureExtractor.extract1stOrderFeatures(sentence, h, ch), false);
                                     if (score > max) {
                                         max = score;
                                         bestLabel = label;
@@ -99,15 +100,15 @@ public class PartialTreeTrainer {
                                 ArrayList<String> goldFeatures = FeatureExtractor.extract1stOrderFeatures(sentence, goldHead, ch);
 
                                 for(String predicted:predictedFeatures)
-                                    perceptron.updateWeight(predicted,-1);
+                                    onlineClassifier.updateWeight(predicted,-1);
                                 for(String gold:goldFeatures)
-                                    perceptron.updateWeight(gold,1);
+                                    onlineClassifier.updateWeight(gold,1);
                             } else {
                                 correct++;
                             }
                         }
                     }
-                    perceptron.incrementIteration();
+                    onlineClassifier.incrementIteration();
                 } else {
                     Sentence parseTree = trainParser.eisner1stOrder(sentence, false);
 
@@ -127,28 +128,28 @@ public class PartialTreeTrainer {
                             ArrayList<String> goldFeatures = FeatureExtractor.extract1stOrderFeatures(sentence, goldHead, ch);
 
                             for(String predicted:predictedFeatures)
-                                perceptron.updateWeight(predicted,-1);
+                                onlineClassifier.updateWeight(predicted,-1);
                             for(String gold:goldFeatures)
-                                perceptron.updateWeight(gold,1);
+                                onlineClassifier.updateWeight(gold,1);
                         } else {
                             correct++;
                         }
                     }
-                    perceptron.incrementIteration();
+                    onlineClassifier.incrementIteration();
 
                 }
             }
             System.out.println("");
             double accuracy = 100.0 * correct / numDep;
-            System.out.println("size : " + perceptron.size());
+            System.out.println("size : " + onlineClassifier.size());
             System.out.println("accuracy : " + accuracy);
 
             System.out.print("\nsaving current model...");
-            perceptron.saveModel(modelPath + "_" + iter);
+            onlineClassifier.saveModel(modelPath + "_" + iter);
             System.out.println("done!");
 
             System.out.print("loading current model...");
-            AveragedPerceptron avgPerceptron = AveragedPerceptron.loadModel(modelPath + "_" + iter);
+            OnlineClassifier avgPerceptron = onlineClassifier.loadModel(modelPath + "_" + iter);
             System.out.println("done!");
 
             GraphBasedParser parser = new GraphBasedParser(avgPerceptron, possibleLabels);
@@ -263,7 +264,7 @@ public class PartialTreeTrainer {
 
 
     public static void train2ndOrder(String trainPath, ArrayList<Sentence> devSentences, ArrayList<String> possibleLabels,
-                                     AveragedPerceptron perceptron, String modelPath, int maxIter, String outPath,boolean useHandCraftedRules,
+                                     OnlineClassifier onlineClassifier, String modelPath, int maxIter, String outPath,boolean useHandCraftedRules,
                                      boolean trainPartial, int insertConstraintIter, double minDepProp, boolean iterativeConstraint,int resetPeriod,boolean alwaysPartial) throws Exception {
         initializePuncs();
         ArrayList<Sentence> trainSentences=  MSTReader.readSentences(trainPath,false);
@@ -271,7 +272,7 @@ public class PartialTreeTrainer {
         for (int iter = 0; iter < maxIter; iter++) {
             int numDep = 0;
             double correct = 0;
-            GraphBasedParser trainParser = new GraphBasedParser(perceptron, possibleLabels);
+            GraphBasedParser trainParser = new GraphBasedParser(onlineClassifier, possibleLabels);
 
             System.out.println("*********************************************************");
             System.out.println("iteration: " + iter);
@@ -437,10 +438,10 @@ public class PartialTreeTrainer {
                         for (String feat : features.keySet()) {
                             double value = features.get(feat);
                             if (value != 0.0)
-                                perceptron.updateWeight(feat, value);
+                                onlineClassifier.updateWeight(feat, value);
                         }
                     }
-                    perceptron.incrementIteration();
+                    onlineClassifier.incrementIteration();
                 }   else if(alwaysPartial || (trainPartial && iter>=insertConstraintIter)){
                     /// just train first order factors
                     for (int ch = 1; ch < sentence.length(); ch++) {
@@ -456,7 +457,7 @@ public class PartialTreeTrainer {
 
                             for (String label : possibleLabels) {
                                 for (int h = 0; h < sentence.length(); h++) {
-                                    double score = perceptron.score(FeatureExtractor.extract1stOrderFeatures(sentence, h, ch), false);
+                                    double score = onlineClassifier.score(FeatureExtractor.extract1stOrderFeatures(sentence, h, ch), false);
                                     if (score > max) {
                                         max = score;
                                         bestLabel = label;
@@ -470,31 +471,32 @@ public class PartialTreeTrainer {
                                 ArrayList<String> goldFeatures = FeatureExtractor.extract1stOrderFeatures(sentence, goldHead, ch);
 
                                 for(String predicted:predictedFeatures)
-                                    perceptron.updateWeight(predicted,-1);
+                                    onlineClassifier.updateWeight(predicted,-1);
                                 for(String gold:goldFeatures)
-                                    perceptron.updateWeight(gold,1);
+                                    onlineClassifier.updateWeight(gold,1);
                             } else {
                                 correct++;
                             }
                         }
                     }
-                    perceptron.incrementIteration();
+                    onlineClassifier.incrementIteration();
                 }
             }
             System.out.println("");
             double accuracy = 100.0 * correct / numDep;
-            System.out.println("size : " + perceptron.size());
+            System.out.println("size : " + onlineClassifier.size());
             System.out.println("accuracy : " + accuracy);
 
             System.out.print("\nsaving current model...");
-            perceptron.saveModel(modelPath + "_" + iter);
+            onlineClassifier.saveModel(modelPath + "_" + iter);
             System.out.println("done!");
 
             System.out.print("loading current model...");
-            AveragedPerceptron avgPerceptron = AveragedPerceptron.loadModel(modelPath + "_" + iter);
+
+            OnlineClassifier decoder = onlineClassifier.loadModel(modelPath + "_" + iter);
             System.out.println("done!");
 
-            GraphBasedParser parser = new GraphBasedParser(avgPerceptron, possibleLabels);
+            GraphBasedParser parser = new GraphBasedParser(decoder, possibleLabels);
 
             System.out.print("\nParsing dev file...");
 
@@ -509,9 +511,6 @@ public class PartialTreeTrainer {
 
             long start = System.currentTimeMillis();
             for (Sentence sentence : devSentences) {
-                //  if(senCount==78){
-                //      System.out.print("HERE");
-                //  }
                 Sentence parseTree = parser.eisner2ndOrder(sentence, true,true,false);
                 writer.write(parseTree.toString());
                 senCount++;
@@ -619,7 +618,7 @@ public class PartialTreeTrainer {
             }
             System.out.println("");
 
-            avgPerceptron = null;
+            decoder = null;
 
         }
     }

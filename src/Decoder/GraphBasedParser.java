@@ -1,6 +1,7 @@
 package Decoder;
 
 import Classifier.AveragedPerceptron;
+import Classifier.OnlineClassifier;
 import Structures.Sentence;
 
 import java.util.ArrayList;
@@ -13,10 +14,10 @@ import java.util.ArrayList;
  * To report any bugs or problems contact rasooli@cs.columbia.edu
  */
 public class GraphBasedParser {
-    AveragedPerceptron classifier;
+    OnlineClassifier classifier;
     ArrayList<String> labels;
 
-    public GraphBasedParser(AveragedPerceptron perceptron,
+    public GraphBasedParser(OnlineClassifier perceptron,
                             ArrayList<String> labels) {
         this.classifier = perceptron;
         this.labels = labels;
