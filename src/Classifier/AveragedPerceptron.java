@@ -14,7 +14,6 @@ import java.util.HashMap;
 public class AveragedPerceptron extends OnlineClassifier implements Serializable {
     HashMap<String, Double> weights;
     HashMap<String, Double> avgWeights;
-    int iteration;
 
     public AveragedPerceptron() {
         weights = new HashMap<String, Double>(1000000);
@@ -35,11 +34,6 @@ public class AveragedPerceptron extends OnlineClassifier implements Serializable
         }  else{
             avgWeights.put(feature,avgWeights.get(feature)+iteration*change);
         }
-    }
-
-    @Override
-    public void incrementIteration(){
-        iteration++;
     }
 
     @Override

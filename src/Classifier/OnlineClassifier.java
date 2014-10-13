@@ -11,10 +11,13 @@ import java.util.ArrayList;
  */
 
 public abstract class OnlineClassifier {
+    protected  int iteration;
     public abstract void updateWeight(String feature, double change);
     public abstract  double score(ArrayList<String> features,boolean decode);
     public abstract void saveModel(String modelPath)  throws  Exception;
-    public  abstract void incrementIteration();
+    public void incrementIteration() {
+        iteration++;
+    }
     public abstract int size();
     public abstract OnlineClassifier loadModel(String modelPath) throws  Exception;
 }

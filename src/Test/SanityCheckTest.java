@@ -1,7 +1,9 @@
 package Test;
 
 import Accessories.MSTReader;
+import Classifier.AdaGrad;
 import Classifier.AveragedPerceptron;
+import Classifier.OnlineClassifier;
 import Structures.Sentence;
 import Trainer.PartialTreeTrainer;
 
@@ -22,41 +24,50 @@ public class SanityCheckTest {
         String modelPath = "/Users/msr/Projects/mstparser_0.2/MSTParser/data/model";
         boolean useDynamTrain = true;
         boolean labeled = false;
-        boolean secondOrder=false;
-        boolean useHandCraftedRules=false;
-        boolean trainPartial=false;
-        int constrainedIterNum=-1;
-        double contrainMinumumRatioDeps=1.0;
-        boolean iterativeConstraint=false;
-        int iterativeConstraintPeriod=3;
-        boolean alwaysPartial=false;
+        boolean secondOrder = false;
+        boolean useHandCraftedRules = false;
+        boolean trainPartial = false;
+        int constrainedIterNum = -1;
+        double contrainMinumumRatioDeps = 1.0;
+        boolean iterativeConstraint = false;
+        int iterativeConstraintPeriod = 3;
+        boolean alwaysPartial = false;
+        String classifierType = "perceptron";
+        double learningRate = 1;
+        double ridge = 0.1;
 
         boolean weighted = false;
         if (args.length > 3) {
             trainPath = args[0];
             devPath = args[1];
             modelPath = args[2];
-          //  useDynamTrain = Boolean.parseBoolean(args[4]);
-           // labeled = Boolean.parseBoolean(args[4]);
-            secondOrder=Boolean.parseBoolean(args[3]);
-            if(args.length>4)
-                useHandCraftedRules     =Boolean.parseBoolean(args[4]);
-            if(args.length>5)
-                trainPartial     =Boolean.parseBoolean(args[5]);
-            if(args.length>6)
-                constrainedIterNum     =Integer.parseInt(args[6]);
-            if(args.length>7)
-                contrainMinumumRatioDeps     =Double.parseDouble(args[7]);
-            if(args.length>8)
-                iterativeConstraint     =Boolean.parseBoolean(args[8]);
-            if(args.length>9)
-                iterativeConstraintPeriod     =Integer.parseInt(args[9]);
-            if(args.length>10)
-                alwaysPartial     =Boolean.parseBoolean(args[10]);
-        } else{
+            //  useDynamTrain = Boolean.parseBoolean(args[4]);
+            // labeled = Boolean.parseBoolean(args[4]);
+            secondOrder = Boolean.parseBoolean(args[3]);
+            if (args.length > 4)
+                useHandCraftedRules = Boolean.parseBoolean(args[4]);
+            if (args.length > 5)
+                trainPartial = Boolean.parseBoolean(args[5]);
+            if (args.length > 6)
+                constrainedIterNum = Integer.parseInt(args[6]);
+            if (args.length > 7)
+                contrainMinumumRatioDeps = Double.parseDouble(args[7]);
+            if (args.length > 8)
+                iterativeConstraint = Boolean.parseBoolean(args[8]);
+            if (args.length > 9)
+                iterativeConstraintPeriod = Integer.parseInt(args[9]);
+            if (args.length > 10)
+                alwaysPartial = Boolean.parseBoolean(args[10]);
+            if (args.length > 11)
+                classifierType = args[11];
+            if (args.length > 12)
+                learningRate = Double.parseDouble(args[12]);
+            if (args.length > 13)
+                ridge = Double.parseDouble(args[13]);
+        } else {
             System.out.println("arguments: [train_path(mst_file)] [dev_path(mst_file)] [model_output_path]  [is_2nd_order(bool)]" +
                     " [use_linguistic_heuristics(bool)] [train_2nd_order_on_partial_trees(bool)] [constrainedIterNum] [contrainMinumumRatioDeps]" +
-                    " [iterativeConstraint(bool)] [iterativeConstraintPeriod] [alwaysPartial(bool)]");
+                    " [iterativeConstraint(bool)] [iterativeConstraintPeriod] [alwaysPartial(bool)] [classifier_type(percpetron/adagrad)] [adagrad_learning_rate] [ada_grad_ridge]");
         }
 
         System.out.println("dyn_train:\t" + useDynamTrain);
@@ -69,12 +80,20 @@ public class SanityCheckTest {
         System.out.println("iterative Constraint:\t" + iterativeConstraint);
         System.out.println("iterative Constraint Period:\t" + iterativeConstraintPeriod);
         System.out.println("always Partial:\t" + alwaysPartial);
+        System.out.println("classifier type:\t" + classifierType);
+        System.out.println("learning rate:\t" + learningRate);
+        System.out.println("ridge:\t" + ridge);
 
-        AveragedPerceptron perceptron =   new AveragedPerceptron();
+        OnlineClassifier onlineClassifier;
+        if (classifierType.equals("adagrad"))
+            onlineClassifier = new AdaGrad(learningRate, ridge);
+        else
+
+            onlineClassifier = new AveragedPerceptron();
         //        if(!secondOrder)
-         //           perceptron=labeled?new AveragedPerceptron(64): new AveragedPerceptron(44);
+        //           perceptron=labeled?new AveragedPerceptron(64): new AveragedPerceptron(44);
 
-        ArrayList<Sentence> trainData=MSTReader.readSentences(trainPath,weighted);
+        ArrayList<Sentence> trainData = MSTReader.readSentences(trainPath, weighted);
         ArrayList<Sentence> devData = MSTReader.readSentences(devPath, false);
         ArrayList<String> possibleLabels = new ArrayList<String>();
         if (labeled) {
@@ -93,13 +112,12 @@ public class SanityCheckTest {
             possibleLabels.add("");
 
 
-        System.err.println("labeled: "+labeled+" with "+possibleLabels.size()+" possibilities");
+        System.err.println("labeled: " + labeled + " with " + possibleLabels.size() + " possibilities");
 
-         if(!secondOrder) {
-             PartialTreeTrainer.train(trainData, devData, possibleLabels, perceptron, modelPath, 30, useDynamTrain, modelPath + ".out", useHandCraftedRules);
-         }
-        else {
-             PartialTreeTrainer.train2ndOrder(trainPath, devData, possibleLabels, perceptron, modelPath, 30, modelPath + ".out", useHandCraftedRules, trainPartial, constrainedIterNum, contrainMinumumRatioDeps, iterativeConstraint, iterativeConstraintPeriod,alwaysPartial);
-         }
+        if (!secondOrder) {
+            PartialTreeTrainer.train(trainData, devData, possibleLabels, onlineClassifier, modelPath, 30, useDynamTrain, modelPath + ".out", useHandCraftedRules);
+        } else {
+            PartialTreeTrainer.train2ndOrder(trainPath, devData, possibleLabels, onlineClassifier, modelPath, 30, modelPath + ".out", useHandCraftedRules, trainPartial, constrainedIterNum, contrainMinumumRatioDeps, iterativeConstraint, iterativeConstraintPeriod, alwaysPartial);
+        }
     }
 }
