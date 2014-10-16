@@ -85,7 +85,7 @@ public class MSTReader {
                 System.err.print(sen_num + "...");
             }
         }
-        System.err.print("\nretrieved " +sentences.size() +"sentences with "+ num_dep + " dependencies\n");
+        System.err.print("\nretrieved " +sentences.size() +" sentences with "+ num_dep + " dependencies\n");
 
         return sentences;
     }

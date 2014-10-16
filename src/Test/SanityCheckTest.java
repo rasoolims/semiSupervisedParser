@@ -89,31 +89,31 @@ public class SanityCheckTest {
         //        if(!secondOrder)
         //           perceptron=labeled?new AveragedPerceptron(64): new AveragedPerceptron(44);
 
-        ArrayList<Sentence> trainData = MSTReader.readSentences(trainPath, false);
         ArrayList<Sentence> devData = MSTReader.readSentences(devPath, true);
         ArrayList<String> possibleLabels = new ArrayList<String>();
-        if (labeled) {
-            for (Sentence sentence : trainData) {
-                for (int i = 1; i < sentence.length(); i++) {
-                    if (sentence.hasHead(i)) {
-                        String label = sentence.label(i);
-                        if (!label.equals("") && !possibleLabels.contains(label))
-                            possibleLabels.add(label);
+
+
+        if (!secondOrder) {
+            ArrayList<Sentence> trainData = MSTReader.readSentences(trainPath, false);
+            if (labeled) {
+                for (Sentence sentence : trainData) {
+                    for (int i = 1; i < sentence.length(); i++) {
+                        if (sentence.hasHead(i)) {
+                            String label = sentence.label(i);
+                            if (!label.equals("") && !possibleLabels.contains(label))
+                                possibleLabels.add(label);
+                        }
                     }
                 }
             }
-        }
-
-        if (possibleLabels.size() == 0)
-            possibleLabels.add("");
-
-
-        System.err.println("labeled: " + labeled + " with " + possibleLabels.size() + " possibilities");
-
-        if (!secondOrder) {
+            if (possibleLabels.size() == 0)
+                possibleLabels.add("");
+            System.err.println("labeled: " + labeled + " with " + possibleLabels.size() + " possibilities");
             PartialTreeTrainer.train(trainData, devData, possibleLabels, onlineClassifier, modelPath, 30, useDynamTrain, modelPath + ".out", useHandCraftedRules);
         } else {
-            trainData=null;
+            if (possibleLabels.size() == 0)
+                possibleLabels.add("");
+            System.err.println("labeled: " + labeled + " with " + possibleLabels.size() + " possibilities");
             PartialTreeTrainer.train2ndOrder(trainPath, devData, possibleLabels, onlineClassifier, modelPath, 30, modelPath + ".out", useHandCraftedRules, trainPartial, constrainedIterNum, contrainMinumumRatioDeps, iterativeConstraint, iterativeConstraintPeriod, alwaysPartial);
         }
     }
