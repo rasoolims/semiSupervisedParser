@@ -33,14 +33,13 @@ public class FeatureExtractor {
         String direction = "l";
         int distance = 0;
         if (childIndex > 0)
-            Math.abs(secondChildIndex - childIndex);
+            distance=Math.abs(secondChildIndex - childIndex);
         if(distance>=10)
             distance=10;
         else if (distance>=5)
             distance=5;
         if (secondChildIndex > headIndex)
             direction = "r";
-
 
         String tempFeat = "";
 
