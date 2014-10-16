@@ -16,7 +16,7 @@ import java.util.ArrayList;
 
 public class MSTReader {
 
-    public static ArrayList<Sentence> readSentences(String path, boolean isWeighted) throws Exception {
+    public static ArrayList<Sentence> readSentences(String path, boolean keepEmptyTrees) throws Exception {
         BufferedReader reader = new BufferedReader(new FileReader(path));
         String line = null;
 
@@ -52,6 +52,7 @@ public class MSTReader {
             sLabels[0] = "";
             confidence[0]=0.0;
 
+            boolean hasDep=false;
             for (int i = 1; i < length; i++) {
                 sWords[i] = words[i - 1];
                 if(sWords[i].equals("-LRB-"))
@@ -61,10 +62,9 @@ public class MSTReader {
                 sTags[i] = posTags[i - 1];
 
                 confidence[i]=1.0;
-                String[] spl=heads[i-1].split(":");
-                int head=Integer.parseInt(spl[0]);
-                if(spl.length>1 && isWeighted)
-                    confidence[i]=Double.parseDouble(spl[1]);
+                int head=Integer.parseInt(heads[i-1]);
+                if(head>=0)
+                    hasDep=true;
 
                 sHead[i] =head;
                 sLabels[i] = labels[i - 1];
@@ -74,8 +74,10 @@ public class MSTReader {
                     num_dep++;
             }
 
-            Sentence sentence = new Sentence(sWords, sTags, sHead, sLabels,confidence);
-            sentences.add(sentence);
+            if(hasDep) {
+                Sentence sentence = new Sentence(sWords, sTags, sHead, sLabels);
+                sentences.add(sentence);
+            }
             sen_num++;
             //if(sen_num>3000)
             //    break;
@@ -83,7 +85,7 @@ public class MSTReader {
                 System.err.print(sen_num + "...");
             }
         }
-        System.err.print("\nretrieved " + num_dep + " dependencies\n");
+        System.err.print("\nretrieved " +sentences.size() +"sentences with "+ num_dep + " dependencies\n");
 
         return sentences;
     }

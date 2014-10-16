@@ -36,13 +36,10 @@ public class SanityCheckTest {
         double learningRate = 1;
         double ridge = 0.1;
 
-        boolean weighted = false;
         if (args.length > 3) {
             trainPath = args[0];
             devPath = args[1];
             modelPath = args[2];
-            //  useDynamTrain = Boolean.parseBoolean(args[4]);
-            // labeled = Boolean.parseBoolean(args[4]);
             secondOrder = Boolean.parseBoolean(args[3]);
             if (args.length > 4)
                 useHandCraftedRules = Boolean.parseBoolean(args[4]);
@@ -71,7 +68,6 @@ public class SanityCheckTest {
         }
 
         System.out.println("dyn_train:\t" + useDynamTrain);
-        System.out.println("weighted:\t" + weighted);
         System.out.println("second_order:\t" + secondOrder);
         System.out.println("use_ling_tricks:\t" + useHandCraftedRules);
         System.out.println("train_partial:\t" + trainPartial);
@@ -93,8 +89,8 @@ public class SanityCheckTest {
         //        if(!secondOrder)
         //           perceptron=labeled?new AveragedPerceptron(64): new AveragedPerceptron(44);
 
-        ArrayList<Sentence> trainData = MSTReader.readSentences(trainPath, weighted);
-        ArrayList<Sentence> devData = MSTReader.readSentences(devPath, false);
+        ArrayList<Sentence> trainData = MSTReader.readSentences(trainPath, false);
+        ArrayList<Sentence> devData = MSTReader.readSentences(devPath, true);
         ArrayList<String> possibleLabels = new ArrayList<String>();
         if (labeled) {
             for (Sentence sentence : trainData) {
@@ -117,6 +113,7 @@ public class SanityCheckTest {
         if (!secondOrder) {
             PartialTreeTrainer.train(trainData, devData, possibleLabels, onlineClassifier, modelPath, 30, useDynamTrain, modelPath + ".out", useHandCraftedRules);
         } else {
+            trainData=null;
             PartialTreeTrainer.train2ndOrder(trainPath, devData, possibleLabels, onlineClassifier, modelPath, 30, modelPath + ".out", useHandCraftedRules, trainPartial, constrainedIterNum, contrainMinumumRatioDeps, iterativeConstraint, iterativeConstraintPeriod, alwaysPartial);
         }
     }

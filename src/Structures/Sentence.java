@@ -13,14 +13,12 @@ public class Sentence {
     String[] tags;
     int[] heads;
     String[] labels;
-    public double[] confidence;
 
     public Sentence(String[] words, String[] tags){
         this.words=words;
         this.tags = tags;
         heads=new int[words.length];
         labels=new String[words.length];
-        confidence=new double[words.length];
 
         heads[0]=-1;
         labels[0]="";
@@ -39,7 +37,6 @@ public class Sentence {
         for(int i=1;i<words.length;i++){
             labels[i]="";
         }
-        confidence=new double[words.length];
 
     }
 
@@ -48,15 +45,6 @@ public class Sentence {
         this.tags = tags;
         this.heads=heads;
         this.labels=labels;
-        confidence=new double[words.length];
-    }
-
-    public Sentence(String[] words, String[] tags,int[] heads,String[] labels,double[] confidence){
-        this.words=words;
-        this.tags = tags;
-        this.heads=heads;
-        this.labels=labels;
-        this.confidence=confidence;
     }
 
 
