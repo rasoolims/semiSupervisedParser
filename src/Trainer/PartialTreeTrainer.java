@@ -627,4 +627,5 @@ public class PartialTreeTrainer {
         return (pos.equals(".") || pos.equals(",") || pos.equals(":") || pos.equals("(") || pos.equals(")") || pos.equals("-LRB-") || pos.equals("-RRB-")
                 || pos.equals("#") || pos.equals("$") || pos.equals("''") || pos.equals("``"));
     }
+
 }

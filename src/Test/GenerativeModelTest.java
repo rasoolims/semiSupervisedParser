@@ -16,12 +16,18 @@ import java.util.ArrayList;
 
 public class GenerativeModelTest {
     public static void main(String[] args) throws Exception {
-        String trainPath= "/Users/msr/Desktop/full.train.mst";
-        if(args.length>=1){
+        String trainPath= "/Users/msr/Downloads/train.auto.tag.mst";
+        String devPath= "/Users/msr/Downloads/dev.auto.tag.mst";
+        if(args.length>=2){
             trainPath=args[0];
+            devPath=args[1];
         }
         ArrayList<Sentence> trainData = MSTReader.readSentences(trainPath, false);
-        GenerativeModel gm=new GenerativeModel(.01,.001);
+        ArrayList<Sentence> devData = MSTReader.readSentences(devPath, false);
+        GenerativeModel gm=new GenerativeModel(0.1,0.0001);
         gm.createCounts(trainData);
+    //    gm.parse(trainData);
+
+        gm.parse(devData);
     }
 }
