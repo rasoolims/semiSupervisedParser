@@ -71,6 +71,14 @@ public class GenerativeModel implements Serializable {
      */
     HashMap<String,HashMap<String,Double>> coarseGrainedPosCounts;
 
+    HashMap<String,HashMap<String,Double>> posDirCoarseCounts;
+    HashMap<String,HashMap<String,Double>> wordDirCoarseCounts;
+    HashMap<String,HashMap<String,Double>> posDirFineCounts;
+    HashMap<String,HashMap<String,Double>> wordDirFineCounts;
+    HashMap<String,Integer> posDirCount;
+    HashMap<String,Integer> wordPosDirCount;
+
+
     HashMap<String,Integer> posDirValCount;
 
 
@@ -106,6 +114,12 @@ public class GenerativeModel implements Serializable {
         wordPosCount=new HashMap<String, HashMap<String, Double>>();
         posCount=new HashMap<String, Integer>();
         posPosCount=new HashMap<String, HashMap<String, Double>>();
+        posDirCoarseCounts=new HashMap<String, HashMap<String, Double>>();
+        wordDirCoarseCounts=new HashMap<String, HashMap<String, Double>>();
+        posDirFineCounts=new HashMap<String, HashMap<String, Double>>();
+        wordDirFineCounts=new HashMap<String, HashMap<String, Double>>();
+        posDirCount=new HashMap<String, Integer>();
+        wordPosDirCount=new HashMap<String, Integer>();
         numPat = Pattern.compile("[-+]?[0-9]*\\.?[0-9]+");
         initializePuncs();
     }
@@ -206,6 +220,10 @@ public class GenerativeModel implements Serializable {
         String wordPosDirVal = hw + "|" + hp + "|" + direction + "|" + valency;
         String posDirVal = hp + "|" + direction + "|" + valency;
 
+        //new
+        String wordPosDir = hw + "|" + hp + "|" + direction ;
+        String posDir = hp + "|" + direction ;
+
         int f1 = 0;
         double n1 = 0;
         double n2 = 0;
@@ -215,7 +233,52 @@ public class GenerativeModel implements Serializable {
 
         double n5 = 0;
         double n6 = 0;
+
         int f3 = 0;
+
+        /////new
+        int f4=0;
+        int f5=0;
+        double n7=0;
+        double n8=0;
+        double n9=0;
+        double n10=0;
+
+        if(wordPosDirCount.containsKey(wordPosDir)){
+            f4=  wordPosDirCount.get(wordPosDir);
+            n7=wordSmoothing;
+            n9=posSmoothing;
+
+            if(wordDirFineCounts.get(wordPosDir).containsKey(mw)){
+                n7+= wordDirFineCounts.get(wordPosDir).get(mw);
+            }
+
+            if(posDirFineCounts.get(wordPosDir).containsKey(mp)){
+                n9+= posDirFineCounts.get(wordPosDir).get(mp);
+            }
+        }
+
+        if(posDirCount.containsKey(posDir)){
+            f5=  posDirCount.get(posDir);
+            n8=wordSmoothing;
+            n10=posSmoothing;
+
+            if(wordDirCoarseCounts.get(posDir).containsKey(mw)){
+                n8+= wordDirCoarseCounts.get(posDir).get(mw);
+            }
+
+            if(posDirCoarseCounts.get(posDir).containsKey(mp)){
+                n10+= posDirCoarseCounts.get(posDir).get(mp);
+            }
+        }
+        int u3 = wordPosDirCount.size();
+        double l3 = (double) f4 / (f4 + 5 * u3);
+
+        int u4 = posDirCount.size();
+        double l4 = (double) f5 / (f5 + 5 * u4);
+
+        ////////
+
 
         if (posCount.containsKey(hp)) {
             f3 = posCount.get(hp);
@@ -256,10 +319,23 @@ public class GenerativeModel implements Serializable {
         int u2 = posDirValCount.size();
         double l2 = (double) f2 / (f2 + 5 * u2);
 
-        double p = Math.log(l1 * n1 / (f1 + wordCount.size() * wordSmoothing) + (1.0 - l1) * (l2 * n2 / (f2 + posList.size() * posSmoothing) + (1.0 - l2) * n5 / f3)) + Math.log(l1 * n3 / (f1 + wordCount.size() * wordSmoothing) + (1 - l1) * (l2 * n4 / (f2 + posList.size() * posSmoothing) + (1. - l2) * n6 / f3));
+        double fact1=    n1 / (f1 + wordCount.size() * wordSmoothing);
+        double fact2=  n2 / (f2 + posList.size() * posSmoothing);
+        double fact3=n7/(f4+wordCount.size() * wordSmoothing);
+        double fact4=n8/(f5+posList.size()*posSmoothing);
+        double fact5=n5 / f3;
 
-        if(mw.equals("STOP"))
-            p= Math.log(l1 * n3 / (f1 + wordCount.size() * wordSmoothing) + (1 - l1) * (l2 * n4 / (f2 + posList.size() * posSmoothing) + (1. - l2) * n6 / f3));
+        double fact6=    n3 / (f1 + wordCount.size() * wordSmoothing);
+        double fact7=  n4 / (f2 + posList.size() * posSmoothing);
+        double fact8=n9/(f4+wordCount.size() * wordSmoothing);
+        double fact9=n10/(f5+posList.size()*posSmoothing);
+        double fact10=n6 / f3;
+
+        double p = Math.log(l1 * fact1 + (1.0 - l1) * (l2 * fact2 + (1.0 - l2) * (l3*fact3+(1-l3)*(l4*fact4+(1-l4)* fact5)))) +
+                Math.log(l1 * fact6 + (1.0 - l1) * (l2 * fact7 + (1.0 - l2) * (l3*fact8+(1-l3)*(l4*fact9+(1-l4)* fact10))));
+
+     //   if(mw.equals("STOP"))
+         //   p= Math.log(l1 * n3 / (f1 + wordCount.size() * wordSmoothing) + (1 - l1) * (l2 * n4 / (f2 + posList.size() * posSmoothing) + (1. - l2) * n6 / f3));
         return p;
     }
 
@@ -396,6 +472,47 @@ public class GenerativeModel implements Serializable {
         posPosCount.get(pos).put(stop, posPosCount.get(pos).get(stop) + 2);
         posCount.put(pos, posCount.get(pos) + 2);
 
+        ////////
+        // new
+        //////
+        String leftWordPosDir=word+"|"+pos+"|l";
+        String rightWordPosDir=word+"|"+pos+"|r";
+        String leftPosDir=pos+"|l";
+        String rightPosDir=pos+"|r";
+
+        if(!posDirCoarseCounts.containsKey(leftPosDir)){
+            posDirCoarseCounts.put(leftPosDir,new HashMap<String, Double>());
+            wordDirCoarseCounts.put(leftPosDir,new HashMap<String, Double>());
+            posDirCoarseCounts.get(leftPosDir).put(stop,0.0);
+            wordDirCoarseCounts.get(leftPosDir).put(stop,0.0);
+            posDirCount.put(leftPosDir,0);
+        }
+        if(!posDirFineCounts.containsKey(leftWordPosDir)){
+            posDirFineCounts.put(leftWordPosDir,new HashMap<String, Double>());
+            wordDirFineCounts.put(leftWordPosDir,new HashMap<String, Double>());
+            posDirFineCounts.get(leftWordPosDir).put(stop,0.0);
+            wordDirFineCounts.get(leftWordPosDir).put(stop,0.0);
+            wordPosDirCount.put(leftWordPosDir,0);
+        }
+
+        if(!posDirCoarseCounts.containsKey(rightPosDir)){
+            posDirCoarseCounts.put(rightPosDir,new HashMap<String, Double>());
+            wordDirCoarseCounts.put(rightPosDir,new HashMap<String, Double>());
+            posDirCoarseCounts.get(rightPosDir).put(stop,0.0);
+            wordDirCoarseCounts.get(rightPosDir).put(stop,0.0);
+            posDirCount.put(rightPosDir,0);
+        }
+        if(!posDirFineCounts.containsKey(rightWordPosDir)){
+            posDirFineCounts.put(rightWordPosDir,new HashMap<String, Double>());
+            wordDirFineCounts.put(rightWordPosDir,new HashMap<String, Double>());
+            posDirFineCounts.get(rightWordPosDir).put(stop,0.0);
+            wordDirFineCounts.get(rightWordPosDir).put(stop,0.0);
+            wordPosDirCount.put(rightWordPosDir,0);
+        }
+
+        ////
+        ////
+
         //todo
         // traversing left children
         if(revDepDic.get(m).fst.size()==0){
@@ -408,6 +525,14 @@ public class GenerativeModel implements Serializable {
                 coarseGrainedPosCounts.get(leftPosDirNoVal).put(stop, coarseGrainedPosCounts.get(leftPosDirNoVal).get(stop) + 1);
                 coarseGrainedWordCounts.get(leftPosDirNoVal).put(stop, coarseGrainedWordCounts.get(leftPosDirNoVal).get(stop) + 1);
                 posDirValCount.put(leftPosDirNoVal, posDirValCount.get(leftPosDirNoVal) + 1);
+
+                // new
+                posDirCoarseCounts.get(leftPosDir).put(stop,posDirCoarseCounts.get(leftPosDir).get(stop)+1);
+                posDirFineCounts.get(leftWordPosDir).put(stop,posDirFineCounts.get(leftWordPosDir).get(stop)+1);
+                wordDirCoarseCounts.get(leftPosDir).put(stop,wordDirCoarseCounts.get(leftPosDir).get(stop)+1);
+                wordDirFineCounts.get(leftWordPosDir).put(stop,wordDirFineCounts.get(leftWordPosDir).get(stop)+1);
+                wordPosDirCount.put(leftWordPosDir,wordPosDirCount.get(leftWordPosDir)+1);
+                posDirCount.put(leftPosDir,posDirCount.get(leftPosDir)+1);
             }
         }  else{
             boolean first=true;
@@ -479,6 +604,30 @@ public class GenerativeModel implements Serializable {
                     posDirValCount.put(leftPosDirVal,posDirValCount.get(leftPosDirVal)+1);
                 }
                 first=false;
+
+                // new
+                if(!posDirCoarseCounts.get(leftPosDir).containsKey(modPos))
+                    posDirCoarseCounts.get(leftPosDir).put(modPos,1.);
+                else
+                    posDirCoarseCounts.get(leftPosDir).put(modPos,  posDirCoarseCounts.get(leftPosDir).get(modPos)+1);
+
+                if(!posDirCoarseCounts.get(leftPosDir).containsKey(modPos))
+                    posDirCoarseCounts.get(leftPosDir).put(modPos,1.);
+                else
+                    posDirCoarseCounts.get(leftPosDir).put(modPos,  posDirCoarseCounts.get(leftPosDir).get(modPos)+1);
+
+                if(!wordDirCoarseCounts.get(leftPosDir).containsKey(modWord))
+                    wordDirCoarseCounts.get(leftPosDir).put(modWord,1.);
+                else
+                    wordDirCoarseCounts.get(leftPosDir).put(modWord,  wordDirCoarseCounts.get(leftPosDir).get(modWord)+1);
+
+                if(!wordDirFineCounts.get(leftWordPosDir).containsKey(modWord))
+                    wordDirFineCounts.get(leftWordPosDir).put(modWord,1.);
+                else
+                    wordDirFineCounts.get(leftWordPosDir).put(modWord,  wordDirFineCounts.get(leftWordPosDir).get(modWord)+1);
+
+                wordPosDirCount.put(leftWordPosDir,wordPosDirCount.get(leftWordPosDir)+1);
+                posDirCount.put(leftPosDir,posDirCount.get(leftPosDir)+1);
             }
             if(m!=0) {
                 // stop  after getting dependents on the left
@@ -489,6 +638,14 @@ public class GenerativeModel implements Serializable {
                 coarseGrainedPosCounts.get(leftPosDirVal).put(stop, coarseGrainedPosCounts.get(leftPosDirVal).get(stop) + 1);
                 coarseGrainedWordCounts.get(leftPosDirVal).put(stop, coarseGrainedWordCounts.get(leftPosDirVal).get(stop) + 1);
                 posDirValCount.put(leftPosDirVal, posDirValCount.get(leftPosDirVal) + 1);
+
+                // new
+                posDirCoarseCounts.get(leftPosDir).put(stop,posDirCoarseCounts.get(leftPosDir).get(stop)+1);
+                posDirFineCounts.get(leftWordPosDir).put(stop,posDirFineCounts.get(leftWordPosDir).get(stop)+1);
+               wordDirCoarseCounts.get(leftPosDir).put(stop,wordDirCoarseCounts.get(leftPosDir).get(stop)+1);
+                wordDirFineCounts.get(leftWordPosDir).put(stop,wordDirFineCounts.get(leftWordPosDir).get(stop)+1);
+                wordPosDirCount.put(leftWordPosDir,wordPosDirCount.get(leftWordPosDir)+1);
+                posDirCount.put(leftPosDir,posDirCount.get(leftPosDir)+1);
             }
         }
 
@@ -504,6 +661,14 @@ public class GenerativeModel implements Serializable {
                 coarseGrainedPosCounts.get(rightPosDirNoVal).put(stop, coarseGrainedPosCounts.get(rightPosDirNoVal).get(stop) + 1);
                 coarseGrainedWordCounts.get(rightPosDirNoVal).put(stop, coarseGrainedWordCounts.get(rightPosDirNoVal).get(stop) + 1);
                 posDirValCount.put(rightPosDirNoVal, posDirValCount.get(rightPosDirNoVal) + 1);
+
+                // new
+                posDirCoarseCounts.get(rightPosDir).put(stop,posDirCoarseCounts.get(rightPosDir).get(stop)+1);
+                posDirFineCounts.get(rightWordPosDir).put(stop,posDirFineCounts.get(rightWordPosDir).get(stop)+1);
+                wordDirCoarseCounts.get(rightPosDir).put(stop,wordDirCoarseCounts.get(rightPosDir).get(stop)+1);
+               wordDirFineCounts.get(rightWordPosDir).put(stop,wordDirFineCounts.get(rightWordPosDir).get(stop)+1);
+                wordPosDirCount.put(rightWordPosDir,wordPosDirCount.get(rightWordPosDir)+1);
+                posDirCount.put(rightPosDir,posDirCount.get(rightPosDir)+1);
             }
         }  else{
             boolean first=true;
@@ -576,6 +741,30 @@ public class GenerativeModel implements Serializable {
                     posDirValCount.put(rightPosDirVal,posDirValCount.get(rightPosDirVal)+1);
                 }
                 first=false;
+
+                // new
+                if(!posDirCoarseCounts.get(rightPosDir).containsKey(modPos))
+                    posDirCoarseCounts.get(rightPosDir).put(modPos,1.);
+                else
+                    posDirCoarseCounts.get(rightPosDir).put(modPos,  posDirCoarseCounts.get(rightPosDir).get(modPos)+1);
+
+                if(!posDirCoarseCounts.get(rightPosDir).containsKey(modPos))
+                    posDirCoarseCounts.get(rightPosDir).put(modPos,1.);
+                else
+                    posDirCoarseCounts.get(rightPosDir).put(modPos,  posDirCoarseCounts.get(rightPosDir).get(modPos)+1);
+
+                if(!wordDirCoarseCounts.get(rightPosDir).containsKey(modWord))
+                    wordDirCoarseCounts.get(rightPosDir).put(modWord,1.);
+                else
+                    wordDirCoarseCounts.get(rightPosDir).put(modWord,  wordDirCoarseCounts.get(rightPosDir).get(modWord)+1);
+
+                if(!wordDirFineCounts.get(rightWordPosDir).containsKey(modWord))
+                    wordDirFineCounts.get(rightWordPosDir).put(modWord,1.);
+                else
+                    wordDirFineCounts.get(rightWordPosDir).put(modWord,  wordDirFineCounts.get(rightWordPosDir).get(modWord)+1);
+
+                wordPosDirCount.put(rightWordPosDir,wordPosDirCount.get(rightWordPosDir)+1);
+                posDirCount.put(rightPosDir,posDirCount.get(rightPosDir)+1);
             }
 
             if(m!=0) {
@@ -587,6 +776,14 @@ public class GenerativeModel implements Serializable {
                 coarseGrainedPosCounts.get(rightPosDirVal).put(stop, coarseGrainedPosCounts.get(rightPosDirVal).get(stop) + 1);
                 coarseGrainedWordCounts.get(rightPosDirVal).put(stop, coarseGrainedWordCounts.get(rightPosDirVal).get(stop) + 1);
                 posDirValCount.put(rightPosDirVal, posDirValCount.get(rightPosDirVal) + 1);
+
+                // new
+                posDirCoarseCounts.get(rightPosDir).put(stop,posDirCoarseCounts.get(rightPosDir).get(stop)+1);
+                posDirFineCounts.get(rightWordPosDir).put(stop,posDirFineCounts.get(rightWordPosDir).get(stop)+1);
+                wordDirCoarseCounts.get(rightPosDir).put(stop,wordDirCoarseCounts.get(rightPosDir).get(stop)+1);
+                wordDirFineCounts.get(rightWordPosDir).put(stop,wordDirFineCounts.get(rightWordPosDir).get(stop)+1);
+                wordPosDirCount.put(rightWordPosDir,wordPosDirCount.get(rightWordPosDir)+1);
+                posDirCount.put(rightPosDir,posDirCount.get(rightPosDir)+1);
             }
         }
 
