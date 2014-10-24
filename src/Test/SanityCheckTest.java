@@ -19,8 +19,8 @@ import java.util.ArrayList;
 
 public class SanityCheckTest {
     public static void main(String[] args) throws Exception {
-        String trainPath = "/Users/msr/Desktop/full.train.mst";
-        String devPath = "/Users/msr/Desktop/full.dev.mst";
+        String trainPath = "/Users/msr/Desktop/train.auto.tag.mst";
+        String devPath = "/Users/msr/Desktop/dev.auto.tag.mst";
         String modelPath = "/Users/msr/Projects/mstparser_0.2/MSTParser/data/model";
         boolean useDynamTrain = true;
         boolean labeled = false;

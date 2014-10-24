@@ -16,7 +16,7 @@ import java.util.ArrayList;
 
 public class GenerativeModelTest {
     public static void main(String[] args) throws Exception {
-        String trainPath= "/Users/msr/Downloads/train.auto.tag.mst";
+        String trainPath= "/Users/msr/Downloads/dev.auto.tag.mst";
         String devPath= "/Users/msr/Downloads/dev.auto.tag.mst";
         if(args.length>=2){
             trainPath=args[0];
@@ -24,7 +24,7 @@ public class GenerativeModelTest {
         }
         ArrayList<Sentence> trainData = MSTReader.readSentences(trainPath, false);
         ArrayList<Sentence> devData = MSTReader.readSentences(devPath, false);
-        GenerativeModel gm=new GenerativeModel(0.1,0.0001);
+        GenerativeModel gm=new GenerativeModel(0,0);
         gm.createCounts(trainData);
     //    gm.parse(trainData);
 

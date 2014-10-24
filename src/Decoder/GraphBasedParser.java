@@ -313,12 +313,20 @@ public class GraphBasedParser {
         double[][] secondOrderScores = new double[l][l];
         // getting first-order attachment scores
         for (int i = 0; i < l; i++) {
-            for (int j = i + 1; j < l; j++) {
-                    firstOrderScores[i][j] = gm.logProbability(sentence, i, j, false);
-                    secondOrderScores[i][j] = gm.logProbability(sentence,i,j,true);
+            for (int j = i+1 ; j < l; j++) {
+                    if(i!=j) {
+                        firstOrderScores[i][j] = gm.logProbability(sentence, i, j, false);
+                        secondOrderScores[i][j] = gm.logProbability(sentence, i, j, true);
 
-                    firstOrderScores[j][i] = gm.logProbability(sentence, j, i, false);
-                    secondOrderScores[j][i] = gm.logProbability(sentence, j, i, true);
+                        firstOrderScores[j][i] = gm.logProbability(sentence, j, i, false);
+                        secondOrderScores[j][i] = gm.logProbability(sentence, j, i, true);
+                    }else{
+                        firstOrderScores[i][j] = Double.NEGATIVE_INFINITY;
+                        secondOrderScores[i][j] = Double.NEGATIVE_INFINITY;
+
+                        firstOrderScores[j][i] = Double.NEGATIVE_INFINITY;
+                        secondOrderScores[j][i] = Double.NEGATIVE_INFINITY;
+                    }
             }
         }
 
@@ -352,7 +360,8 @@ public class GraphBasedParser {
                 for (int r = s+1; r < t; r++) {
                   int  mr=   bd[s][r][neutral][rectangular];
 
-                    double newValue = c[s][r][neutral][rectangular] + c[r][t][left][incomplete] +  secondOrderScores[t][s]+gm.logProbability(sentence,s,sentence.length(),s!=mr)+gm.logProbability(sentence,r,-1,mr+1!=r);
+                    double newValue = c[s][r][neutral][rectangular] + c[r][t][left][incomplete] +  secondOrderScores[t][s]+
+                            gm.logProbability(sentence,s,sentence.length(),s!=mr)+gm.logProbability(sentence,r,-1,mr+1!=r);
 
                     if (newValue > c[s][t][left][incomplete]) {
                         c[s][t][left][incomplete] = newValue;
@@ -360,7 +369,8 @@ public class GraphBasedParser {
                     }
 
                     mr=   bd[r][t][neutral][rectangular];
-                    newValue = c[s][r][right][incomplete] + c[r][t][neutral][rectangular] + secondOrderScores[s][t]+gm.logProbability(sentence,r,sentence.length(),r!=mr)+gm.logProbability(sentence,t,-1,mr+1!=t);
+                    newValue = c[s][r][right][incomplete] + c[r][t][neutral][rectangular] + secondOrderScores[s][t]+
+                            gm.logProbability(sentence,r,sentence.length(),r!=mr)+gm.logProbability(sentence,t,-1,mr+1!=t);
 
                     if (newValue > c[s][t][right][incomplete]) {
                         c[s][t][right][incomplete] = newValue;
@@ -398,6 +408,7 @@ public class GraphBasedParser {
             }
         }
         retrieve2ndDeps(bd, 0, l - 1, 0, 1, finalDeps);
+      //  System.err.println("*********");
 
         return new Sentence(sentence.getWords(), sentence.getTags(), finalDeps);
     }
@@ -407,6 +418,7 @@ public class GraphBasedParser {
                              int completeness, int[] finalDeps) {
         if (s == t)
             return;
+
         int r = bd[s][t][direction][completeness];
         if (completeness == 1) {
             if (direction == 0) {
@@ -441,27 +453,41 @@ public class GraphBasedParser {
             if (direction == 0) {
                 retrieve2ndDeps(bd, s, r, 0, 0, finalDeps);
                 retrieve2ndDeps(bd, r, t, 0, 1,  finalDeps);
+                //System.err.println(r+">stop>"+(r!=t));
             } else if (direction == 1) {
                 retrieve2ndDeps(bd, s, r, 1, 1, finalDeps);
                 retrieve2ndDeps(bd, r, t, 1, 0,  finalDeps);
+                //System.err.println("stop<"+r+"<"+(r!=s));
             }
         } else if (completeness == 0) {
             if (direction == 0) {
                 finalDeps[t] = s;
+                int  mr=   bd[r][t][2][2];
 
                 if (r > s && t>r ) {
                     retrieve2ndDeps(bd, s, r, 0, 0,  finalDeps);
                     retrieve2ndDeps(bd, r, t, 2, 2, finalDeps);
+                    //System.err.println(r+">stop>"+(r!=mr));
+                    //System.err.println("stop<"+t+"<"+(mr+1!=t));
+                    //System.err.println(s+">"+t+">true");
                 } else {
                     retrieve2ndDeps(bd, s + 1, t, 1, 1,  finalDeps);
+                    //System.err.println("stop<"+t+"<"+(s!=t-1));
+                    //System.err.println(s+">"+t+">false");
                 }
             } else if (direction == 1) {
+                int  mr=   bd[s][r][2][2];
                 finalDeps[s] = t;
                 if (r > s && t > r ) {
                     retrieve2ndDeps(bd, s, r, 2, 2,finalDeps);
                     retrieve2ndDeps(bd, r, t, 1, 0,  finalDeps);
+                    //System.err.println(s+">stop>"+(s!=mr));
+                    //System.err.println("stop<"+r+"<"+(r!=mr+1));
+                    //System.err.println(s+"<"+t+"<true");
                 } else {
                     retrieve2ndDeps(bd, s, t -1, 0, 1, finalDeps);
+                    //System.err.println(s+">stop>"+(s+1!=t));
+                    //System.err.println(s+"<"+t+"<false");
                 }
             }
         } else {
