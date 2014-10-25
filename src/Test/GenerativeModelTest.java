@@ -16,7 +16,7 @@ import java.util.ArrayList;
 
 public class GenerativeModelTest {
     public static void main(String[] args) throws Exception {
-       //   String trainPath= "/Users/msr/Desktop/train.auto.tag.mst";
+       ///   String trainPath= "/Users/msr/Desktop/train.auto.tag.mst";
       //  String devPath= "/Users/msr/Desktop/dev.auto.tag.mst";
 
         ///   String trainPath= "/Users/msr/Desktop/full.mst";

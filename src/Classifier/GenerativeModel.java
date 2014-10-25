@@ -58,10 +58,6 @@ public class GenerativeModel implements Serializable {
     HashMap<String, Integer> posCount;
     HashMap<String, HashMap<String, Double>> posPosCount;
 
-    HashMap<String, Integer> posDirCount;
-    HashMap<String, HashMap<String, Double>> wordPosDirCount;
-    HashMap<String, HashMap<String, Double>> posPosDirCount;
-
 
     public GenerativeModel(double wordSmoothing, double posSmoothing) {
         wordCount = new HashSet<String>();
@@ -79,9 +75,6 @@ public class GenerativeModel implements Serializable {
         posPosCount = new HashMap<String, HashMap<String, Double>>();
         word2PosDirValCount = new HashMap<String, Integer>();
         pos2DirValCount = new HashMap<String, Integer>();
-        wordPosDirCount =new HashMap<String, HashMap<String, Double>>();
-        posDirCount=new HashMap<String, Integer>();
-        posPosDirCount =new HashMap<String, HashMap<String, Double>>();
         numPat = Pattern.compile("[-+]?[0-9]*\\.?[0-9]+");
         initializePuncs();
     }
@@ -223,26 +216,21 @@ public class GenerativeModel implements Serializable {
         double f3 = 0;//wordSmoothing*wordCount.size();
         double f4 = 0;//posSmoothing*posList.size();
 
-        double n5=wordSmoothing;
-        double  n6=posSmoothing;
-        double f5=0;
-        double f6=0;
-
-        double n7 = 0;
-        double n8 = 0;
-        int f7 = 0;
+        double n5 = 0;
+        double n6 = 0;
+        int f5 = 0;
 
 
         if (posCount.containsKey(hp)) {
-            f7 = posCount.get(hp);
+            f5 = posCount.get(hp);
 
             if (wordPosCount.containsKey(hp) &&
                     wordPosCount.get(hp).containsKey(mw)) {
-                n7 = wordPosCount.get(hp).get(mw);
+                n5 = wordPosCount.get(hp).get(mw);
             }
 
             if (posPosCount.containsKey(hp) && posPosCount.get(hp).containsKey(mp)) {
-                n8 = posPosCount.get(hp).get(mp);
+                n6 = posPosCount.get(hp).get(mp);
             }
         }
 
@@ -280,23 +268,6 @@ public class GenerativeModel implements Serializable {
                 n4 += coarseGrainedPosCounts.get(posDirVal).get(mp);
         }
 
-        if (posDirCount.containsKey(hp+"|"+direction)) {
-            f5 += posDirCount.get(hp+"|"+direction);
-            f6 += posDirCount.get(hp+"|"+direction);
-            n5 = wordSmoothing;
-
-            if (wordPosDirCount.containsKey(hp+"|"+direction)) {
-                if (wordPosDirCount.get(hp + "|" + direction).containsKey(mw)) {
-                    n5 += wordPosDirCount.get(hp + "|" + direction).get(mw);
-                }
-            }
-
-            if (posPosDirCount.get(hp+"|"+direction).containsKey(mw)) {
-                f5 -=  posPosDirCount.get(hp + "|" + direction).get("STOP");
-                n6 += posPosDirCount.get(hp + "|" + direction).get(mw);
-            }
-        }
-
 
         int u1 = 0;
         if (fineGrainedWordCounts.containsKey(word2PosDirVal))
@@ -331,36 +302,17 @@ public class GenerativeModel implements Serializable {
         if (Double.isNaN(l4) || Double.isInfinite(l4))
             l4 = 0;
 
-        int u5 = 0;
-        if (wordPosDirCount.containsKey(hp+"|"+direction))
-            u5 = wordPosDirCount.get(hp+"|"+direction).size();
-        // posDirValCount.size();
-        double l5 = f5 / (f5 + 5 * u5);
-        if (Double.isNaN(l5) || Double.isInfinite(l5))
-            l5 = 0;
-
-        int u6 = 0;
-        if (posPosDirCount.containsKey(hp+"|"+direction))
-            u6 = posPosDirCount.get(hp+"|"+direction).size();
-        // posDirValCount.size();
-        double l6 = f6 / (f6 + 5 * u6);
-        if (Double.isNaN(l6) || Double.isInfinite(l6))
-            l6 = 0;
-
         double fact1 = n1 / (f1+ wordSmoothing*wordCount.size());
         double fact2 = n2 / (f2+ posSmoothing*posCount.size());
 
         double shft=0;
         if(posPosCount.containsKey(hp))
             shft= posPosCount.get(hp).get("STOP");
-        double fact3 = n7 / (f7- shft);
+        double fact3 = n5 / (f5- shft);
 
         double fact4 = n3 /(f3+ wordSmoothing*wordCount.size());
         double fact5 = n4 / (f4+ posSmoothing*posCount.size());
-        double fact6=n5/(f5+ wordSmoothing*wordCount.size());
-        double fact7=n6/(f6+ posSmoothing*posCount.size());
-
-        double fact8 = n8 / f7;
+        double fact6 = n6 / f5;
 
         if (Double.isNaN(fact1))
             fact1 = 0;
@@ -374,17 +326,11 @@ public class GenerativeModel implements Serializable {
             fact5 = 0;
         if (Double.isNaN(fact6))
             fact6 = 0;
-        if (Double.isNaN(fact7))
-            fact7 = 0;
-        if (Double.isNaN(fact8))
-            fact8 = 0;
 
-        l5=1;
-        l6=1;
-        double p = Math.log(l1 * fact1 + (1.0 - l1) * (l2 * fact2 + (1.0 - l2)*(l5*fact6 +(1-l5)* fact3))) + Math.log(l3 * fact4 + (1 - l3) * (l4 * fact5 + (1. - l4) * (l6*fact7+(1-l6)*fact8)));
+        double p = Math.log(l1 * fact1 + (1.0 - l1) * (l2 * fact2 + (1.0 - l2) * fact3)) + Math.log(l3 * fact4 + (1 - l3) * (l4 * fact5 + (1. - l4) * fact6));
 
         if (mw.equals("STOP"))
-            p =  Math.log(l3 * fact4 + (1 - l3) * (l4 * fact5 + (1. - l4) * (l6*fact7+(1-l6)*fact8)));
+            p = Math.log(l3 * fact4 + (1 - l3) * (l4 * fact5 + (1. - l4) * fact6));
 
         if (Double.isNaN(p))
             p = negativeInfinity;
@@ -484,19 +430,6 @@ public class GenerativeModel implements Serializable {
                 else
                     posDirValCount.put(leftPosDirNoVal, posDirValCount.get(leftPosDirNoVal) + 1);
 
-                //new
-                String posDir=pos+"|l";
-                if(!posDirCount.containsKey(posDir))
-                    posDirCount.put(posDir,1);
-                else
-                    posDirCount.put(posDir,posDirCount.get(posDir)+1);
-
-                if(!posPosDirCount.containsKey(posDir))
-                    posPosDirCount.put(posDir,new HashMap<String, Double>());
-                if(!posPosDirCount.get(posDir).containsKey(stop))
-                    posPosDirCount.get(posDir).put(stop,1.);
-                else
-                    posPosDirCount.get(posDir).put(stop,posPosDirCount.get(posDir).get(stop)+1);
             }
         } else {
             boolean first = true;
@@ -523,26 +456,6 @@ public class GenerativeModel implements Serializable {
                 else
                     wordPosCount.get(pos).put(modWord, 1.);
 
-                //new
-                String posDir=pos+"|l";
-                if(!posDirCount.containsKey(posDir))
-                    posDirCount.put(posDir,1);
-                else
-                    posDirCount.put(posDir,posDirCount.get(posDir)+1);
-
-                if(!posPosDirCount.containsKey(posDir))
-                    posPosDirCount.put(posDir,new HashMap<String, Double>());
-                if(!posPosDirCount.get(posDir).containsKey(modPos))
-                    posPosDirCount.get(posDir).put(modPos,1.);
-                else
-                    posPosDirCount.get(posDir).put(modPos,posPosDirCount.get(posDir).get(modPos)+1);
-
-                if(!wordPosDirCount.containsKey(posDir))
-                    wordPosDirCount.put(posDir,new HashMap<String, Double>());
-                if(!wordPosDirCount.get(posDir).containsKey(modWord))
-                    wordPosDirCount.get(posDir).put(modWord,1.);
-                else
-                    wordPosDirCount.get(posDir).put(modWord,wordPosDirCount.get(posDir).get(modWord)+1);
 
                 if (first) {
                     //System.err.println(m+"->l(!a)->"+mod);
@@ -676,20 +589,6 @@ public class GenerativeModel implements Serializable {
                     posDirValCount.put(leftPosDirVal, 1);
                 else
                     posDirValCount.put(leftPosDirVal, posDirValCount.get(leftPosDirVal) + 1);
-
-                //new
-                String posDir=pos+"|l";
-                if(!posDirCount.containsKey(posDir))
-                    posDirCount.put(posDir,1);
-                else
-                    posDirCount.put(posDir,posDirCount.get(posDir)+1);
-
-                if(!posPosDirCount.containsKey(posDir))
-                    posPosDirCount.put(posDir,new HashMap<String, Double>());
-                if(!posPosDirCount.get(posDir).containsKey(stop))
-                    posPosDirCount.get(posDir).put(stop,1.);
-                else
-                    posPosDirCount.get(posDir).put(stop,posPosDirCount.get(posDir).get(stop)+1);
             }
         }
 
@@ -722,21 +621,6 @@ public class GenerativeModel implements Serializable {
                     posDirValCount.put(rightPosDirNoVal, 1);
                 else
                     posDirValCount.put(rightPosDirNoVal, posDirValCount.get(rightPosDirNoVal) + 1);
-
-
-                //new
-                String posDir=pos+"|r";
-                if(!posDirCount.containsKey(posDir))
-                    posDirCount.put(posDir,1);
-                else
-                    posDirCount.put(posDir,posDirCount.get(posDir)+1);
-
-                if(!posPosDirCount.containsKey(posDir))
-                    posPosDirCount.put(posDir,new HashMap<String, Double>());
-                if(!posPosDirCount.get(posDir).containsKey(stop))
-                    posPosDirCount.get(posDir).put(stop,1.);
-                else
-                    posPosDirCount.get(posDir).put(stop,posPosDirCount.get(posDir).get(stop)+1);
             }
         } else {
             boolean first = true;
@@ -763,27 +647,6 @@ public class GenerativeModel implements Serializable {
                 else
                     wordPosCount.get(pos).put(modWord, 1.);
 
-
-                //new
-                String posDir=pos+"|r";
-                if(!posDirCount.containsKey(posDir))
-                    posDirCount.put(posDir,1);
-                else
-                    posDirCount.put(posDir,posDirCount.get(posDir)+1);
-
-                if(!posPosDirCount.containsKey(posDir))
-                    posPosDirCount.put(posDir,new HashMap<String, Double>());
-                if(!posPosDirCount.get(posDir).containsKey(modPos))
-                    posPosDirCount.get(posDir).put(modPos,1.);
-                else
-                    posPosDirCount.get(posDir).put(modPos,posPosDirCount.get(posDir).get(modPos)+1);
-
-                if(!wordPosDirCount.containsKey(posDir))
-                    wordPosDirCount.put(posDir,new HashMap<String, Double>());
-                if(!wordPosDirCount.get(posDir).containsKey(modWord))
-                    wordPosDirCount.get(posDir).put(modWord,1.);
-                else
-                    wordPosDirCount.get(posDir).put(modWord,wordPosDirCount.get(posDir).get(modWord)+1);
 
                 if (first) {
                     //System.err.println(m+"->l(!a)->"+mod);
@@ -917,20 +780,6 @@ public class GenerativeModel implements Serializable {
                     posDirValCount.put(rightPosDirVal, 1);
                 else
                     posDirValCount.put(rightPosDirVal, posDirValCount.get(rightPosDirVal) + 1);
-
-                //new
-                String posDir=pos+"|r";
-                if(!posDirCount.containsKey(posDir))
-                    posDirCount.put(posDir,1);
-                else
-                    posDirCount.put(posDir,posDirCount.get(posDir)+1);
-
-                if(!posPosDirCount.containsKey(posDir))
-                    posPosDirCount.put(posDir,new HashMap<String, Double>());
-                if(!posPosDirCount.get(posDir).containsKey(stop))
-                    posPosDirCount.get(posDir).put(stop,1.);
-                else
-                    posPosDirCount.get(posDir).put(stop,posPosDirCount.get(posDir).get(stop)+1);
             }
         }
 
