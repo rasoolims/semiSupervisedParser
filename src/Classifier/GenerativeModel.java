@@ -25,6 +25,7 @@ public class GenerativeModel implements Serializable {
     static HashSet<String> punctuations = new HashSet<String>();
     Pattern numPat;
     int min = 6;
+    final double negativeInfinity=-100000;
     HashSet<String> wordCount;
     HashSet<String> posList;
     double wordSmoothing;
@@ -271,7 +272,7 @@ public class GenerativeModel implements Serializable {
         if (fineGrainedWordCounts.containsKey(word2PosDirVal))
             u1 = fineGrainedWordCounts.get(word2PosDirVal).size();
         // word2PosDirValCount.size();
-        double l1 = f1 / (f1 + 1 * u1);
+        double l1 = f1 / (f1 + 5 * u1);
         if (Double.isNaN(l1) || Double.isInfinite(l1))
             l1 = 0;
 
@@ -287,7 +288,7 @@ public class GenerativeModel implements Serializable {
         if (fineGrainedPosCounts.containsKey(wordPosDirVal))
             u3 = fineGrainedPosCounts.get(wordPosDirVal).size();
         //wordPosDirValCount.size();
-        double l3 = f3 / (f3 + 1 * u3);
+        double l3 = f3 / (f3 + 5 * u3);
         if (Double.isNaN(l3) || Double.isInfinite(l3))
             l3 = 0;
 
@@ -327,9 +328,9 @@ public class GenerativeModel implements Serializable {
             p = Math.log(l3 * fact4 + (1 - l3) * (l4 * fact5 + (1. - l4) * fact6));
 
         if (Double.isNaN(p))
-            p = Double.NEGATIVE_INFINITY;
+            p = negativeInfinity;
         if (Double.isInfinite(p))
-            p = Double.NEGATIVE_INFINITY;
+            p = negativeInfinity;
         return p;
     }
 
