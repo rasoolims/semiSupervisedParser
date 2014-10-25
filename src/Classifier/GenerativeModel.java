@@ -58,6 +58,7 @@ public class GenerativeModel implements Serializable {
     HashMap<String, Integer> posCount;
     HashMap<String, HashMap<String, Double>> posPosCount;
 
+
     public GenerativeModel(double wordSmoothing, double posSmoothing) {
         wordCount = new HashSet<String>();
         posList = new HashSet<String>();
@@ -303,7 +304,11 @@ public class GenerativeModel implements Serializable {
 
         double fact1 = n1 / (f1+ wordSmoothing*wordCount.size());
         double fact2 = n2 / (f2+ posSmoothing*posCount.size());
-        double fact3 = n5 / f5;
+
+        double shft=0;
+        if(posPosCount.containsKey(hp))
+            shft= posPosCount.get(hp).get("STOP");
+        double fact3 = n5 / (f5- shft);
 
         double fact4 = n3 /(f3+ wordSmoothing*wordCount.size());
         double fact5 = n4 / (f4+ posSmoothing*posCount.size());
@@ -386,11 +391,11 @@ public class GenerativeModel implements Serializable {
 
         if (!posPosCount.containsKey(pos)) {
             posPosCount.put(pos, new HashMap<String, Double>());
-            if (m != 0)
+            if (m >= 0)
                 posPosCount.get(pos).put(stop, 0.0);
             posCount.put(pos, 0);
         }
-        if (m != 0) {
+        if (m >= 0) {
             posPosCount.get(pos).put(stop, posPosCount.get(pos).get(stop) + 2);
             posCount.put(pos, posCount.get(pos) + 2);
         }
@@ -398,7 +403,7 @@ public class GenerativeModel implements Serializable {
         //todo
         // traversing left children
         if (revDepDic.get(m).fst.size() == 0) {
-            if (m != 0) {
+            if (m >= 0) {
                 // stop  without getting any dependents on the left
                 //System.err.println(m+"->l(!a)->stop");
                 if (!fineGrainedPosCounts.containsKey(leftWordPosDirNoVal))
@@ -424,6 +429,7 @@ public class GenerativeModel implements Serializable {
                     posDirValCount.put(leftPosDirNoVal, 1);
                 else
                     posDirValCount.put(leftPosDirNoVal, posDirValCount.get(leftPosDirNoVal) + 1);
+
             }
         } else {
             boolean first = true;
@@ -557,7 +563,7 @@ public class GenerativeModel implements Serializable {
                 }
                 first = false;
             }
-            if (m != 0) {
+            if (m >= 0) {
                 // stop  after getting dependents on the left
                 if (!fineGrainedPosCounts.containsKey(leftWordPosDirVal))
                     fineGrainedPosCounts.put(leftWordPosDirVal, new HashMap<String, Double>());
@@ -589,7 +595,7 @@ public class GenerativeModel implements Serializable {
         //todo
         // traversing right children
         if (revDepDic.get(m).snd.size() == 0) {
-            if (m != 0) {
+            if (m >= 0) {
                 // stop  without getting any dependents on the right
                 //System.err.println(m+"->l(!a)->stop");
                 if (!fineGrainedPosCounts.containsKey(rightWordPosDirNoVal))
@@ -748,7 +754,7 @@ public class GenerativeModel implements Serializable {
                 }
                 first = false;
             }
-            if (m != 0) {
+            if (m >= 0) {
                 // stop  after getting dependents on the right
                 if (!fineGrainedPosCounts.containsKey(rightWordPosDirVal))
                     fineGrainedPosCounts.put(rightWordPosDirVal, new HashMap<String, Double>());
