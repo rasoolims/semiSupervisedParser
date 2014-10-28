@@ -59,6 +59,11 @@ public class GenerativeModel implements Serializable {
     HashMap<String, HashMap<String, Double>> posPosCount;
 
 
+    HashMap<String,HashMap<String,Double>> wordPosEmissionCount;
+    HashMap<String,Integer> posEmissionCount;
+
+
+
     public GenerativeModel(double wordSmoothing, double posSmoothing) {
         wordCount = new HashSet<String>();
         posList = new HashSet<String>();
@@ -75,6 +80,8 @@ public class GenerativeModel implements Serializable {
         posPosCount = new HashMap<String, HashMap<String, Double>>();
         word2PosDirValCount = new HashMap<String, Integer>();
         pos2DirValCount = new HashMap<String, Integer>();
+        wordPosEmissionCount=new HashMap<String, HashMap<String, Double>>();
+        posEmissionCount=new HashMap<String, Integer>();
         numPat = Pattern.compile("[-+]?[0-9]*\\.?[0-9]+");
         initializePuncs();
     }
@@ -127,7 +134,7 @@ public class GenerativeModel implements Serializable {
         for (Sentence sentence : trainSentences) {
             for (int i = 0; i < sentence.length(); i++) {
                 posList.add(sentence.pos(i));
-                String word = sentence.word(i);//.toLowerCase();
+                String word = sentence.word(i).toLowerCase();
                 Matcher matcher = numPat.matcher(word);
                 if (matcher.matches())
                     word = "<num>";
@@ -179,7 +186,7 @@ public class GenerativeModel implements Serializable {
         String direction = (head > mod) ? "l" : "r";
         String valency = val ? "v" : "!v";
 
-        String hw = sentence.word(head);//.toLowerCase();
+        String hw = sentence.word(head).toLowerCase();
         Matcher matcher = numPat.matcher(hw);
         if (matcher.matches())
             hw = "<num>";
@@ -191,7 +198,7 @@ public class GenerativeModel implements Serializable {
         String mp = "STOP";
         String mw = "STOP";
         if (mod >= 0 && mod < sentence.length()) {
-            mw = sentence.word(mod);//.toLowerCase();
+            mw = sentence.word(mod).toLowerCase();
             matcher = numPat.matcher(mw);
             if (matcher.matches())
                 mw = "<num>";
@@ -293,7 +300,6 @@ public class GenerativeModel implements Serializable {
         if (Double.isNaN(l3) || Double.isInfinite(l3))
             l3 = 0;
 
-
         int u4 = 0;
         if (coarseGrainedPosCounts.containsKey(posDirVal))
             u4 = coarseGrainedPosCounts.get(posDirVal).size();
@@ -304,14 +310,13 @@ public class GenerativeModel implements Serializable {
 
         double fact1 = n1 / (f1+ wordSmoothing*wordCount.size());
         double fact2 = n2 / (f2+ posSmoothing*posCount.size());
-
-        double shft=0;
-        if(posPosCount.containsKey(hp))
-            shft= posPosCount.get(hp).get("STOP");
-        double fact3 = n5 / (f5- shft);
-
         double fact4 = n3 /(f3+ wordSmoothing*wordCount.size());
         double fact5 = n4 / (f4+ posSmoothing*posCount.size());
+
+       double fact3=0.0;
+        if(wordPosEmissionCount.containsKey(mp) && wordPosEmissionCount.get(mp).containsKey(mw))
+            fact3=  wordPosEmissionCount.get(mp).get(mw)/posEmissionCount.get(mp);
+
         double fact6 = n6 / f5;
 
         if (Double.isNaN(fact1))
@@ -368,7 +373,7 @@ public class GenerativeModel implements Serializable {
     }
 
     private void traverseTree(int m, Sentence sentence, HashMap<Integer, Pair<TreeSet<Integer>, TreeSet<Integer>>> revDepDic) {
-        String word = sentence.word(m);//.toLowerCase();
+        String word = sentence.word(m).toLowerCase();
         Matcher matcher = numPat.matcher(word);
         if (matcher.matches())
             word = "<num>";
@@ -376,6 +381,19 @@ public class GenerativeModel implements Serializable {
 
         if (!wordCount.contains(word))
             word = "UNKNOWN";
+
+
+        if(!posEmissionCount.containsKey(pos)){
+            posEmissionCount.put(pos,1);
+            wordPosEmissionCount.put(pos,new HashMap<String, Double>());
+        } else{
+            posEmissionCount.put(pos,posEmissionCount.get(pos)+1);
+        }
+
+        if(!wordPosEmissionCount.get(pos).containsKey(word))
+            wordPosEmissionCount.get(pos).put(word,1.);
+        else
+            wordPosEmissionCount.get(pos).put(word,  wordPosEmissionCount.get(pos).get(word)+1);
 
         String stop = "STOP";
 
@@ -435,7 +453,7 @@ public class GenerativeModel implements Serializable {
             boolean first = true;
             for (int mod : revDepDic.get(m).fst.descendingSet()) {
                 traverseTree(mod, sentence, revDepDic);
-                String modWord = sentence.word(mod);//.toLowerCase();
+                String modWord = sentence.word(mod).toLowerCase();
                 matcher = numPat.matcher(modWord);
                 if (matcher.matches())
                     modWord = "<num>";
@@ -626,7 +644,7 @@ public class GenerativeModel implements Serializable {
             boolean first = true;
             for (int mod : revDepDic.get(m).snd) {
                 traverseTree(mod, sentence, revDepDic);
-                String modWord = sentence.word(mod);//.toLowerCase();
+                String modWord = sentence.word(mod).toLowerCase();
                 matcher = numPat.matcher(modWord);
                 if (matcher.matches())
                     modWord = "<num>";
