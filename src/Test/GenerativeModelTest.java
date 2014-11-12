@@ -31,7 +31,7 @@ public class GenerativeModelTest {
         }
 
         ArrayList<Sentence> trainData = MSTReader.readSentences(trainPath, false);
-        ArrayList<Sentence> devData = MSTReader.readSentences(devPath, false);
+        ArrayList<Sentence> devData = MSTReader.readSentences(devPath, true);
         GenerativeModel gm=new GenerativeModel(0,0);
         gm.createCounts(trainData);
     //    gm.parse(trainData);

@@ -5,6 +5,8 @@ import Structures.Sentence;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by Mohammad Sadegh Rasooli.
@@ -15,10 +17,10 @@ import java.util.ArrayList;
  */
 
 public class MSTReader {
-
     public static ArrayList<Sentence> readSentences(String path, boolean keepEmptyTrees) throws Exception {
         BufferedReader reader = new BufferedReader(new FileReader(path));
         String line = null;
+        Pattern numPat = Pattern.compile("[-+]?[0-9]*\\.?[0-9]+");
 
         int num_dep = 0;
         ArrayList<Sentence> sentences = new ArrayList<Sentence>();
@@ -30,14 +32,14 @@ public class MSTReader {
                 continue;
 
             String[] words = line.split("\t");
-            line = reader.readLine();
-            String[] posTags = line.split("\t");
+           String posline = reader.readLine();
+            String[] posTags = posline.split("\t");
 
-            line = reader.readLine();
-            String[] labels = line.split("\t");
+           String labelLine  = reader.readLine();
+            String[] labels = labelLine.split("\t");
 
-            line = reader.readLine();
-            String[] heads = line.split("\t");
+            String headLine = reader.readLine();
+            String[] heads = headLine.split("\t");
 
 
             int length = words.length + 1;
@@ -54,27 +56,39 @@ public class MSTReader {
 
             boolean hasDep=false;
             for (int i = 1; i < length; i++) {
-                sWords[i] = words[i - 1];
-                if(sWords[i].equals("-LRB-"))
-                    sWords[i]="(";
-                if(sWords[i].equals("-RRB-"))
-                    sWords[i]=")";
-                sTags[i] = posTags[i - 1];
+                try {
+                    sWords[i] = words[i - 1];
 
-                confidence[i]=1.0;
-                int head=Integer.parseInt(heads[i-1]);
-                if(head>=0)
-                    hasDep=true;
+                    if (sWords[i].equals("-LRB-"))
+                        sWords[i] = "(";
+                    if (sWords[i].equals("-RRB-"))
+                        sWords[i] = ")";
+                    //  Matcher matcher = numPat.matcher( sWords[i]);
+                    // if (matcher.matches())
+                    //  sWords[i] = "<num>";
+                    sTags[i] = posTags[i - 1];
 
-                sHead[i] =head;
-                sLabels[i] = labels[i - 1];
-                if (sLabels[i].equals("_"))
-                    sLabels[i] = "";
-                if (head >= 0)
-                    num_dep++;
+                    confidence[i] = 1.0;
+                    int head = Integer.parseInt(heads[i - 1]);
+                    if (head >= 0)
+                        hasDep = true;
+
+                    sHead[i] = head;
+                    sLabels[i] = labels[i - 1];
+                    if (sLabels[i].equals("_"))
+                        sLabels[i] = "";
+                    if (head >= 0)
+                        num_dep++;
+                }catch (Exception ex){
+                    System.err.println(line);
+                    System.err.println(posline);
+                    System.err.println(labelLine);
+                    System.err.println(headLine);
+                    System.exit(1);
+                }
             }
 
-            if(hasDep) {
+            if(hasDep || keepEmptyTrees) {
                 Sentence sentence = new Sentence(sWords, sTags, sHead, sLabels);
                 sentences.add(sentence);
             }

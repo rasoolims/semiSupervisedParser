@@ -290,7 +290,7 @@ public class PartialTreeTrainer {
                         break;
                     }
                 }
-                if (isCompleteTree) {
+                if (isCompleteTree && isProjective(sentence)) {
                     Sentence parseTree = trainParser.eisner2ndOrder(sentence, false,useHandCraftedRules,false);
                     boolean theSame = true;
                     for (int ch = 1; ch < sentence.length(); ch++) {
@@ -570,7 +570,7 @@ public class PartialTreeTrainer {
                             break;
                         }
                     }
-                    if (isCompleteTree) {
+                    if (isCompleteTree && isProjective(sentence)) {
                           StringBuilder wOutput=new StringBuilder();
                         StringBuilder pOutput=new StringBuilder();
                         StringBuilder lOutput=new StringBuilder();
@@ -626,6 +626,30 @@ public class PartialTreeTrainer {
     private static boolean isPunc(String pos) {
         return (pos.equals(".") || pos.equals(",") || pos.equals(":") || pos.equals("(") || pos.equals(")") || pos.equals("-LRB-") || pos.equals("-RRB-")
                 || pos.equals("#") || pos.equals("$") || pos.equals("''") || pos.equals("``"));
+    }
+
+    public static boolean isProjective(Sentence sentence) {
+        for (int dep1 = 1; dep1 < sentence.length(); dep1++) {
+            int head1 = sentence.head(dep1);
+            for (int dep2 = 1; dep2 < sentence.length(); dep2++) {
+                int head2 = sentence.head(dep2);
+                if (head1 == -1 || head2 == -1)
+                    continue;
+                if (dep1 > head1 && head1 != head2) {
+                    if (dep1 > head2 && dep1 < dep2 && head1 < head2)
+                        return false;
+                    if (dep1 < head2 && dep1 > dep2 && head1 < dep2)
+                        return false;
+                }
+                if (dep1 < head1 && head1 != head2) {
+                    if (head1 > head2 && head1 < dep2 && dep1 < head2)
+                        return false;
+                    if (head1 < head2 && head1 > dep2 && dep1 < dep2)
+                        return false;
+                }
+            }
+        }
+        return true;
     }
 
 }
