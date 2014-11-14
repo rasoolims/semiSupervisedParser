@@ -84,6 +84,7 @@ public class MSTReader {
                     System.err.println(posline);
                     System.err.println(labelLine);
                     System.err.println(headLine);
+                    ex.printStackTrace()      ;
                     System.exit(1);
                 }
             }

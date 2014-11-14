@@ -48,7 +48,7 @@ public class PartialTreeTrainer {
     }
 
     public static void train(ArrayList<Sentence> trainSentences, ArrayList<Sentence> devSentences, ArrayList<String> possibleLabels,
-                             OnlineClassifier onlineClassifier, String modelPath, int maxIter, boolean trainStructuredForFullTrees, String outPath, boolean useHandCraftedRules) throws Exception {
+                             OnlineClassifier onlineClassifier, String modelPath, int maxIter, boolean trainStructuredForFullTrees, String outPath, boolean useHandCraftedRules,boolean softConstraint) throws Exception {
 
         initializePuncs();
 
@@ -217,7 +217,7 @@ public class PartialTreeTrainer {
 
              start = System.currentTimeMillis();
             for (Sentence sentence : devSentences) {
-                Sentence parseTree = parser.eisner2ndOrder(sentence, true,useHandCraftedRules,false);
+                Sentence parseTree = parser.eisner2ndOrder(sentence, true,useHandCraftedRules,false,softConstraint);
                 writer.write(parseTree.toString());
                 senCount++;
                 if (senCount % 100 == 0) {
@@ -265,7 +265,7 @@ public class PartialTreeTrainer {
 
     public static void train2ndOrder(String trainPath, ArrayList<Sentence> devSentences, ArrayList<String> possibleLabels,
                                      OnlineClassifier onlineClassifier, String modelPath, int maxIter, String outPath,boolean useHandCraftedRules,
-                                     boolean trainPartial, int insertConstraintIter, double minDepProp, boolean iterativeConstraint,int resetPeriod,boolean alwaysPartial) throws Exception {
+                                     boolean trainPartial, int insertConstraintIter, double minDepProp, boolean iterativeConstraint,int resetPeriod,boolean alwaysPartial,boolean softConstraint) throws Exception {
         initializePuncs();
         ArrayList<Sentence> trainSentences=  MSTReader.readSentences(trainPath,false);
 
@@ -291,7 +291,7 @@ public class PartialTreeTrainer {
                     }
                 }
                 if (isCompleteTree && isProjective(sentence)) {
-                    Sentence parseTree = trainParser.eisner2ndOrder(sentence, false,useHandCraftedRules,false);
+                    Sentence parseTree = trainParser.eisner2ndOrder(sentence, false,useHandCraftedRules,false,false);
                     boolean theSame = true;
                     for (int ch = 1; ch < sentence.length(); ch++) {
                         numDep++;
@@ -511,7 +511,7 @@ public class PartialTreeTrainer {
 
             long start = System.currentTimeMillis();
             for (Sentence sentence : devSentences) {
-                Sentence parseTree = parser.eisner2ndOrder(sentence, true,true,false);
+                Sentence parseTree = parser.eisner2ndOrder(sentence, true,true,false,false);
                 writer.write(parseTree.toString());
                 senCount++;
                 if (senCount % 100 == 0) {
@@ -555,6 +555,34 @@ public class PartialTreeTrainer {
 
             // todo parsing with constraints
             if(insertConstraintIter==iter+1 || (iterativeConstraint && (insertConstraintIter-iter-1)%resetPeriod==0 )){
+
+                System.out.print("\nresetting data for parsing with constraints... ");
+
+                trainSentences=  MSTReader.readSentences(trainPath,false);
+                System.out.print("\nparsing with constraints... ");
+                int numAll=0;
+                for (int ins=0;ins<trainSentences.size();ins++ ) {
+                    if (ins % 1000 == 0) {
+                        System.out.print(ins + "...");
+                    }
+                    Sentence sentence =trainSentences.get(ins);
+                    int numDeps=0;
+                    for (int ch = 1; ch < sentence.length(); ch++) {
+                        if (sentence.hasHead(ch)) {
+                            numDeps++;
+                        }
+                    }
+                    if((numDeps<sentence.length()-1) && ((double)numDeps/(sentence.length()-1)) > minDepProp){
+                        Sentence parseTree = parser.eisner2ndOrder(sentence, true,useHandCraftedRules,true,softConstraint);
+                        sentence.setHeads(parseTree.getHeads());
+                        sentence.setLabels(parseTree.getLabels());
+                        numAll++;
+                    }
+                }
+                System.out.println("\n added "+numAll+" trees");
+
+
+
                 System.out.print("saving full trees... ");
                 String filePath=modelPath+".full_trees.iter"+(insertConstraintIter-iter-1)/resetPeriod;
                 BufferedWriter fullTreeWriter=new BufferedWriter(new FileWriter(filePath));
@@ -571,7 +599,7 @@ public class PartialTreeTrainer {
                         }
                     }
                     if (isCompleteTree && isProjective(sentence)) {
-                          StringBuilder wOutput=new StringBuilder();
+                        StringBuilder wOutput=new StringBuilder();
                         StringBuilder pOutput=new StringBuilder();
                         StringBuilder lOutput=new StringBuilder();
                         StringBuilder hOutput=new StringBuilder();
@@ -591,30 +619,6 @@ public class PartialTreeTrainer {
                 fullTreeWriter.flush();
                 fullTreeWriter.close();
                 System.out.println("\n Saved to "+filePath);
-                System.out.print("\nresetting data for parsing with constraints... ");
-
-                trainSentences=  MSTReader.readSentences(trainPath,false);
-                System.out.print("\nparsing with constraints... ");
-                int numAll=0;
-                for (int ins=0;ins<trainSentences.size();ins++ ) {
-                    if (ins % 1000 == 0) {
-                        System.out.print(ins + "...");
-                    }
-                    Sentence sentence =trainSentences.get(ins);
-                    int numDeps=0;
-                    for (int ch = 1; ch < sentence.length(); ch++) {
-                        if (sentence.hasHead(ch)) {
-                            numDeps++;
-                        }
-                    }
-                    if(numDeps<sentence.length()-1 && ((double)numDeps/(sentence.length()-1)) > minDepProp){
-                        Sentence parseTree = parser.eisner2ndOrder(sentence, true,useHandCraftedRules,true);
-                        sentence.setHeads(parseTree.getHeads());
-                        sentence.setLabels(parseTree.getLabels());
-                        numAll++;
-                    }
-                }
-                System.out.println("\n added "+numAll+" trees");
             }
             System.out.println("");
 
