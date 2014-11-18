@@ -279,9 +279,13 @@ public class PartialTreeTrainer {
 
             for (Sentence sentence : trainSentences) {
                 senCount++;
-                if (senCount % 1000 == 0) {
+                if (senCount % 1000 == 0 || (secondOrderPartial && senCount%100==0)) {
                     System.out.print(senCount + "...");
                 }
+
+                if(!isProjective(sentence))
+                    continue;
+
                 boolean isCompleteTree = true;
                 for (int ch = 1; ch < sentence.length(); ch++) {
                     if (!sentence.hasHead(ch)) {
@@ -289,7 +293,7 @@ public class PartialTreeTrainer {
                         break;
                     }
                 }
-                if (isCompleteTree && isProjective(sentence)) {
+                if (isCompleteTree ) {
                     Sentence parseTree = trainParser.eisner2ndOrder(sentence, false, useHandCraftedRules, false, false);
                     boolean theSame = true;
                     for (int ch = 1; ch < sentence.length(); ch++) {
@@ -347,7 +351,7 @@ public class PartialTreeTrainer {
                             }
                         }
 
-                        for (int i = 1; i < sentence.length(); i++) {
+                        for (int i = 0; i < sentence.length(); i++) {
                             if (leftDeps[i].size() >= 1) {
                                 for (int j = leftDeps[i].size() - 1; j >= 1; j--) {
                                     int r = leftDeps[i].get(j);
@@ -489,14 +493,14 @@ public class PartialTreeTrainer {
                         for (int ch = 1; ch < sentence.length(); ch++) {
                             int goldHead = sentence.head(ch);
 
+                            int head = parseTree.head(ch);
+                            if (ch > head)
+                                rightDeps[head].add(ch);
+                            else
+                                leftDeps[head].add(ch);
+
                             //update if and only if the gold data has that partial first order dependency
                             if (goldHead != -1) {
-                                int head = parseTree.head(ch);
-                                if (ch > head)
-                                    rightDeps[head].add(ch);
-                                else
-                                    leftDeps[head].add(ch);
-
                                 ArrayList<String> feats = FeatureExtractor.extract1stOrderFeatures(sentence, head, ch);
                                 for (String feat : feats) {
                                     if (!features.containsKey(feat))
@@ -520,9 +524,10 @@ public class PartialTreeTrainer {
                             }
                         }
 
+
                         // extracting left-hand second order features
                         //todo
-                        for (int i = 1; i < sentence.length(); i++) {
+                        for (int i = 0; i < sentence.length(); i++) {
                             if (leftDeps[i].size() >= 1) {
                                 for (int j = leftDeps[i].size() - 1; j >= 1; j--) {
                                     int r = leftDeps[i].get(j);
@@ -536,11 +541,12 @@ public class PartialTreeTrainer {
                                     int goldSHead = sentence.head(s);
 
                                     //second-case   and third case
-                                    if ((goldRHead!=r && goldRHead!=-1) || (goldSHead!=s && goldSHead!=-1))
+                                    if ((goldRHead!=i && goldRHead!=-1) || (goldSHead!=i && goldSHead!=-1))
                                         isNegativeExample=true;
 
 
                                     if (isNegativeExample || hasStretch) {
+                                        //System.out.println(i+":"+r+":"+s+":left->-1");
                                         ArrayList<String> feats = FeatureExtractor.extract2ndOrderFeatures(sentence, i, r, s);
                                         for (String feat : feats) {
                                             if (!features.containsKey(feat))
@@ -551,18 +557,24 @@ public class PartialTreeTrainer {
                                     }
                                 }
 
-                                // first case
-                                boolean hasStretch = true;
-                                if(goldLeftDeps[i].size()>0)
-                                    hasStretch=stretch[i-1][goldLeftDeps[i].get(0)] ;
 
                                 // second case
-                                int realHead=goldLeftDeps[i].size()>0 ? sentence.head(goldLeftDeps[i].get(0)):-1;
+                                int realHead= sentence.head(leftDeps[i].get(leftDeps[i].size()-1));
                                 boolean wrongHead=false;
-                                if (realHead!=-1 && realHead!=goldLeftDeps[i].get(0))
+                                if ((realHead!=-1 && realHead!=i) || sentence.head(i)==leftDeps[i].get(leftDeps[i].size()-1))
                                     wrongHead=true;
 
+                                // first case
+                                boolean hasStretch = false;
+                                if(goldLeftDeps[i].size()>0) {
+                                    hasStretch = stretch[i ][goldLeftDeps[i].get(goldLeftDeps[i].size() - 1)];
+                                    if (Math.abs(i - goldLeftDeps[i].get(goldLeftDeps[i].size() - 1)) == 1 && realHead!=-1)
+                                        hasStretch = true;
+                                }
+
+
                                 if (hasStretch || wrongHead) {
+                                    //System.out.println(i+":"+"0:"+ leftDeps[i].get(leftDeps[i].size() - 1)+":left->-1");
                                     ArrayList<String> feats = FeatureExtractor.extract2ndOrderFeatures(sentence, i, 0, leftDeps[i].get(leftDeps[i].size() - 1));
                                     for (String feat : feats) {
                                         if (!features.containsKey(feat))
@@ -583,6 +595,7 @@ public class PartialTreeTrainer {
                                     boolean hasStretch=stretch[r][s];
 
                                     if(hasStretch) {
+                                        //System.out.println(i+":"+r+":"+s+":left->+1");
                                         ArrayList<String> feats = FeatureExtractor.extract2ndOrderFeatures(sentence, i, r, s);
                                         for (String feat : feats) {
                                             if (!features.containsKey(feat))
@@ -594,9 +607,12 @@ public class PartialTreeTrainer {
                                 }
 
 
-                                boolean hasStretch = stretch[i-1][goldLeftDeps[i].get(0)];
+                                boolean hasStretch = stretch[i][goldLeftDeps[i].get(goldLeftDeps[i].size() - 1)];
+                                if(Math.abs(i-goldLeftDeps[i].get(goldLeftDeps[i].size() - 1))==1)
+                                               hasStretch=true;
 
                                  if(hasStretch) {
+                                     //System.out.println(i+":"+"0"+":"+goldLeftDeps[i].get(goldLeftDeps[i].size() - 1)+":left->+1");
                                      ArrayList<String> feats = FeatureExtractor.extract2ndOrderFeatures(sentence, i, 0, goldLeftDeps[i].get(goldLeftDeps[i].size() - 1));
                                      for (String feat : feats) {
                                          if (!features.containsKey(feat))
@@ -623,11 +639,12 @@ public class PartialTreeTrainer {
                                     int goldTHead = sentence.head(t);
 
                                     //second-case   and third case
-                                    if ((goldRHead!=r && goldRHead!=-1) || (goldTHead!=t && goldTHead!=-1))
+                                    if ((goldRHead!=i && goldRHead!=-1) || (goldTHead!=i && goldTHead!=-1))
                                         isNegativeExample=true;
 
 
-                                    if(isNegativeExample && hasStretch) {
+                                    if(isNegativeExample || hasStretch) {
+                                        //System.out.println(i+":"+r+":"+t+":right->-1");
                                         ArrayList<String> feats = FeatureExtractor.extract2ndOrderFeatures(sentence, i, r, t);
                                         for (String feat : feats) {
                                             if (!features.containsKey(feat))
@@ -638,20 +655,23 @@ public class PartialTreeTrainer {
                                     }
                                 }
 
-                                // first case
-                                boolean hasStretch = true;
-                                if(goldRightDeps[i].size()>0)
-                                    hasStretch=stretch[i+1][goldRightDeps[i].get(0)];
-
                                 // second case
-                                int realHead=goldLeftDeps[i].size()>0 ?sentence.head(goldLeftDeps[i].get(0)):-1;
+                                int realHead=sentence.head(rightDeps[i].get(0));
                                 boolean wrongHead=false;
-                                if (realHead!=-1 && realHead!=goldLeftDeps[i].get(0))
+                                if ((realHead!=-1 && realHead!=i) || sentence.head(i)==rightDeps[i].get(0))
                                     wrongHead=true;
 
+                                // first case
+                                boolean hasStretch = false;
+                                if(goldRightDeps[i].size()>0) {
+                                    hasStretch = stretch[i+1][goldRightDeps[i].get(0)];
+                                    if (Math.abs(i - goldRightDeps[i].get(0)) == 1 && realHead!=-1)
+                                        hasStretch = true;
+                                }
 
                                 if(hasStretch || wrongHead) {
                                     ArrayList<String> feats = FeatureExtractor.extract2ndOrderFeatures(sentence, i, 0, rightDeps[i].get(0));
+                                    //System.out.println(i+":"+"0"+":"+ rightDeps[i].get(0)+":right->-1");
                                     for (String feat : feats) {
                                         if (!features.containsKey(feat))
                                             features.put(feat, -1.0);
@@ -671,6 +691,7 @@ public class PartialTreeTrainer {
                                     boolean hasStretch=stretch[r][t];
 
                                     if(hasStretch) {
+                                        //System.out.println(i+":"+r+":"+t+":right->+1");
                                         ArrayList<String> feats = FeatureExtractor.extract2ndOrderFeatures(sentence, i, r, t);
                                         for (String feat : feats) {
                                             if (!features.containsKey(feat))
@@ -682,9 +703,12 @@ public class PartialTreeTrainer {
                                 }
 
                                 boolean hasStretch = stretch[i+1][goldRightDeps[i].get(0)];
+                                if(Math.abs(i-goldRightDeps[i].get(0))==1)
+                                    hasStretch=true;
 
                                 if(hasStretch) {
                                     ArrayList<String> feats = FeatureExtractor.extract2ndOrderFeatures(sentence, i, 0, goldRightDeps[i].get(0));
+                                    //System.out.println(i+":"+"0"+":"+goldRightDeps[i].get(0)+":right->+1");
                                     for (String feat : feats) {
                                         if (!features.containsKey(feat))
                                             features.put(feat, 1.0);
@@ -694,13 +718,14 @@ public class PartialTreeTrainer {
                                 }
                             }
                         }
-
                         for (String feat : features.keySet()) {
                             double value = features.get(feat);
                             if (value != 0.0)
                                 onlineClassifier.updateWeight(feat, value);
                         }
                     }
+                //    if(!theSame)
+                   //     System.out.println("------");
                     onlineClassifier.incrementIteration();
                 } else if (alwaysPartial || (trainPartial && iter >= insertConstraintIter)) {
                     /// just train first order factors
