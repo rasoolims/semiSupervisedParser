@@ -36,6 +36,7 @@ public class SanityCheckTest {
         double learningRate = 1;
         double ridge = 0.1;
         boolean softConstrained=false;
+        boolean secondOrderPartial=true;
 
         if (args.length > 3) {
             trainPath = args[0];
@@ -59,15 +60,17 @@ public class SanityCheckTest {
             if (args.length > 11)
                 softConstrained = Boolean.parseBoolean(args[11]);
             if (args.length > 12)
-                classifierType = args[12];
+                secondOrderPartial = Boolean.parseBoolean(args[12]);
             if (args.length > 13)
-                learningRate = Double.parseDouble(args[13]);
+                classifierType = args[13];
             if (args.length > 14)
-                ridge = Double.parseDouble(args[14]);
+                learningRate = Double.parseDouble(args[14]);
+            if (args.length > 15)
+                ridge = Double.parseDouble(args[15]);
         } else {
             System.out.println("arguments: [train_path(mst_file)] [dev_path(mst_file)] [model_output_path]  [is_2nd_order(bool)]" +
                     " [use_linguistic_heuristics(bool)] [train_2nd_order_on_partial_trees(bool)] [constrainedIterNum] [contrainMinumumRatioDeps]" +
-                    " [iterativeConstraint(bool)] [iterativeConstraintPeriod] [alwaysPartial(bool)] [soft_constrained(bool)] [classifier_type(percpetron/adagrad)] [adagrad_learning_rate] [ada_grad_ridge]");
+                    " [iterativeConstraint(bool)] [iterativeConstraintPeriod] [alwaysPartial(bool)] [soft_constrained(bool)] [secondOrderPartial(bool)] [classifier_type(percpetron/adagrad)] [adagrad_learning_rate] [ada_grad_ridge]");
         }
 
         System.out.println("dyn_train:\t" + useDynamTrain);
@@ -80,6 +83,7 @@ public class SanityCheckTest {
         System.out.println("iterative Constraint Period:\t" + iterativeConstraintPeriod);
         System.out.println("always Partial:\t" + alwaysPartial);
         System.out.println("soft constrained:\t" + softConstrained);
+        System.out.println("partial second order:\t" + secondOrderPartial);
         System.out.println("classifier type:\t" + classifierType);
         System.out.println("learning rate:\t" + learningRate);
         System.out.println("ridge:\t" + ridge);
@@ -118,7 +122,7 @@ public class SanityCheckTest {
             if (possibleLabels.size() == 0)
                 possibleLabels.add("");
             System.err.println("labeled: " + labeled + " with " + possibleLabels.size() + " possibilities");
-            PartialTreeTrainer.train2ndOrder(trainPath, devData, possibleLabels, onlineClassifier, modelPath, 30, modelPath + ".out", useHandCraftedRules, trainPartial, constrainedIterNum, contrainMinumumRatioDeps, iterativeConstraint, iterativeConstraintPeriod, alwaysPartial,softConstrained);
+            PartialTreeTrainer.train2ndOrder(trainPath, devData, possibleLabels, onlineClassifier, modelPath, 30, modelPath + ".out", useHandCraftedRules, trainPartial, constrainedIterNum, contrainMinumumRatioDeps, iterativeConstraint, iterativeConstraintPeriod, alwaysPartial,softConstrained,secondOrderPartial);
         }
     }
 }

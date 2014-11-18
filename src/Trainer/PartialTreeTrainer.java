@@ -1,7 +1,6 @@
 package Trainer;
 
 import Accessories.MSTReader;
-import Classifier.AveragedPerceptron;
 import Classifier.OnlineClassifier;
 import Decoder.FeatureExtractor;
 import Decoder.GraphBasedParser;
@@ -23,7 +22,7 @@ import java.util.HashSet;
 public class PartialTreeTrainer {
     static HashSet<String> punctuations = new HashSet<String>();
 
-    private static void initializePuncs(){
+    private static void initializePuncs() {
         punctuations = new HashSet<String>();
         punctuations.add("#");
         punctuations.add("$");
@@ -48,7 +47,7 @@ public class PartialTreeTrainer {
     }
 
     public static void train(ArrayList<Sentence> trainSentences, ArrayList<Sentence> devSentences, ArrayList<String> possibleLabels,
-                             OnlineClassifier onlineClassifier, String modelPath, int maxIter, boolean trainStructuredForFullTrees, String outPath, boolean useHandCraftedRules,boolean softConstraint) throws Exception {
+                             OnlineClassifier onlineClassifier, String modelPath, int maxIter, boolean trainStructuredForFullTrees, String outPath, boolean useHandCraftedRules, boolean softConstraint) throws Exception {
 
         initializePuncs();
 
@@ -96,13 +95,13 @@ public class PartialTreeTrainer {
                             }
 
                             if (argmax != goldHead || bestLabel.equals(goldLabel)) {
-                               ArrayList<String> predictedFeatures = FeatureExtractor.extract1stOrderFeatures(sentence, argmax, ch);
+                                ArrayList<String> predictedFeatures = FeatureExtractor.extract1stOrderFeatures(sentence, argmax, ch);
                                 ArrayList<String> goldFeatures = FeatureExtractor.extract1stOrderFeatures(sentence, goldHead, ch);
 
-                                for(String predicted:predictedFeatures)
-                                    onlineClassifier.updateWeight(predicted,-1);
-                                for(String gold:goldFeatures)
-                                    onlineClassifier.updateWeight(gold,1);
+                                for (String predicted : predictedFeatures)
+                                    onlineClassifier.updateWeight(predicted, -1);
+                                for (String gold : goldFeatures)
+                                    onlineClassifier.updateWeight(gold, 1);
                             } else {
                                 correct++;
                             }
@@ -127,10 +126,10 @@ public class PartialTreeTrainer {
                             ArrayList<String> predictedFeatures = FeatureExtractor.extract1stOrderFeatures(sentence, argmax, ch);
                             ArrayList<String> goldFeatures = FeatureExtractor.extract1stOrderFeatures(sentence, goldHead, ch);
 
-                            for(String predicted:predictedFeatures)
-                                onlineClassifier.updateWeight(predicted,-1);
-                            for(String gold:goldFeatures)
-                                onlineClassifier.updateWeight(gold,1);
+                            for (String predicted : predictedFeatures)
+                                onlineClassifier.updateWeight(predicted, -1);
+                            for (String gold : goldFeatures)
+                                onlineClassifier.updateWeight(gold, 1);
                         } else {
                             correct++;
                         }
@@ -203,8 +202,8 @@ public class PartialTreeTrainer {
             System.out.println("time for each sentence: " + timeSec);
 
 
-           double labeledAccuracy = 100.0 * labelCorrect / allDeps;
-          double  unlabeledAccuracy = 100.0 * unlabelCorrect / allDeps;
+            double labeledAccuracy = 100.0 * labelCorrect / allDeps;
+            double unlabeledAccuracy = 100.0 * unlabelCorrect / allDeps;
             System.out.println(String.format("unlabeled: %s labeled: %s", unlabeledAccuracy, labeledAccuracy));
 
 
@@ -213,11 +212,11 @@ public class PartialTreeTrainer {
             unlabelCorrect = 0;
             allDeps = 0;
             senCount = 0;
-             writer = new BufferedWriter(new FileWriter(outPath + "_2nd_order_iter" + iter));
+            writer = new BufferedWriter(new FileWriter(outPath + "_2nd_order_iter" + iter));
 
-             start = System.currentTimeMillis();
+            start = System.currentTimeMillis();
             for (Sentence sentence : devSentences) {
-                Sentence parseTree = parser.eisner2ndOrder(sentence, true,useHandCraftedRules,false,softConstraint);
+                Sentence parseTree = parser.eisner2ndOrder(sentence, true, useHandCraftedRules, false, softConstraint);
                 writer.write(parseTree.toString());
                 senCount++;
                 if (senCount % 100 == 0) {
@@ -247,14 +246,14 @@ public class PartialTreeTrainer {
             }
             writer.flush();
             writer.close();
-             end = System.currentTimeMillis();
-             timeSec = (1.0 * (end - start)) / devSentences.size();
+            end = System.currentTimeMillis();
+            timeSec = (1.0 * (end - start)) / devSentences.size();
             System.out.println("");
             System.out.println("time for each sentence: " + timeSec);
 
 
-             labeledAccuracy = 100.0 * labelCorrect / allDeps;
-              unlabeledAccuracy = 100.0 * unlabelCorrect / allDeps;
+            labeledAccuracy = 100.0 * labelCorrect / allDeps;
+            unlabeledAccuracy = 100.0 * unlabelCorrect / allDeps;
             System.out.println(String.format("unlabeled: %s labeled: %s", unlabeledAccuracy, labeledAccuracy));
 
 
@@ -264,10 +263,10 @@ public class PartialTreeTrainer {
 
 
     public static void train2ndOrder(String trainPath, ArrayList<Sentence> devSentences, ArrayList<String> possibleLabels,
-                                     OnlineClassifier onlineClassifier, String modelPath, int maxIter, String outPath,boolean useHandCraftedRules,
-                                     boolean trainPartial, int insertConstraintIter, double minDepProp, boolean iterativeConstraint,int resetPeriod,boolean alwaysPartial,boolean softConstraint) throws Exception {
+                                     OnlineClassifier onlineClassifier, String modelPath, int maxIter, String outPath, boolean useHandCraftedRules,
+                                     boolean trainPartial, int insertConstraintIter, double minDepProp, boolean iterativeConstraint, int resetPeriod, boolean alwaysPartial, boolean softConstraint, boolean secondOrderPartial) throws Exception {
         initializePuncs();
-        ArrayList<Sentence> trainSentences=  MSTReader.readSentences(trainPath,false);
+        ArrayList<Sentence> trainSentences = MSTReader.readSentences(trainPath, false);
 
         for (int iter = 0; iter < maxIter; iter++) {
             int numDep = 0;
@@ -291,7 +290,7 @@ public class PartialTreeTrainer {
                     }
                 }
                 if (isCompleteTree && isProjective(sentence)) {
-                    Sentence parseTree = trainParser.eisner2ndOrder(sentence, false,useHandCraftedRules,false,false);
+                    Sentence parseTree = trainParser.eisner2ndOrder(sentence, false, useHandCraftedRules, false, false);
                     boolean theSame = true;
                     for (int ch = 1; ch < sentence.length(); ch++) {
                         numDep++;
@@ -442,7 +441,268 @@ public class PartialTreeTrainer {
                         }
                     }
                     onlineClassifier.incrementIteration();
-                }   else if(alwaysPartial || (trainPartial && iter>=insertConstraintIter)){
+                } else if (secondOrderPartial && (alwaysPartial ||  iter >= insertConstraintIter)) {
+
+                    boolean[][] stretch=new boolean[sentence.length()][sentence.length()];
+                    for(int i=0;i<sentence.length();i++){
+                        for(int j=i;j<sentence.length();j++){
+                              if((i==j || stretch[i][j-1]) && sentence.head(j)!=-1) {
+                                  stretch[i][j] = true;
+                                  stretch[j][i] = true;
+                              }   else{
+                                  stretch[i][j] = false;
+                                  stretch[j][i] = false;
+                              }
+
+                        }
+                    }
+
+                    Sentence parseTree = trainParser.eisner2ndOrder(sentence, false, useHandCraftedRules, false, false);
+                    boolean theSame = true;
+                    for (int ch = 1; ch < sentence.length(); ch++) {
+                        numDep++;
+                        // finding the best head
+                        int goldHead = sentence.head(ch);
+                        int argmax = parseTree.head(ch);
+                        if (goldHead != -1 && argmax != goldHead) {
+                            theSame = false;
+                        } else
+                            correct++;
+                    }
+
+                    //todo
+                    if (!theSame) {
+                        HashMap<String, Double> features = new HashMap<String, Double>();
+                        ArrayList<Integer>[] rightDeps = new ArrayList[sentence.length()];
+                        ArrayList<Integer>[] leftDeps = new ArrayList[sentence.length()];
+                        ArrayList<Integer>[] goldRightDeps = new ArrayList[sentence.length()];
+                        ArrayList<Integer>[] goldLeftDeps = new ArrayList[sentence.length()];
+
+                        for (int ch = 0; ch < sentence.length(); ch++) {
+                            rightDeps[ch] = new ArrayList<Integer>();
+                            leftDeps[ch] = new ArrayList<Integer>();
+                            goldRightDeps[ch] = new ArrayList<Integer>();
+                            goldLeftDeps[ch] = new ArrayList<Integer>();
+                        }
+
+                        // extracting 1st order partial features
+                        for (int ch = 1; ch < sentence.length(); ch++) {
+                            int goldHead = sentence.head(ch);
+
+                            //update if and only if the gold data has that partial first order dependency
+                            if (goldHead != -1) {
+                                int head = parseTree.head(ch);
+                                if (ch > head)
+                                    rightDeps[head].add(ch);
+                                else
+                                    leftDeps[head].add(ch);
+
+                                ArrayList<String> feats = FeatureExtractor.extract1stOrderFeatures(sentence, head, ch);
+                                for (String feat : feats) {
+                                    if (!features.containsKey(feat))
+                                        features.put(feat, -1.0);
+                                    else
+                                        features.put(feat, -1.0 + features.get(feat));
+                                }
+
+                                if (ch > goldHead)
+                                    goldRightDeps[goldHead].add(ch);
+                                else
+                                    goldLeftDeps[goldHead].add(ch);
+
+                                feats = FeatureExtractor.extract1stOrderFeatures(sentence, goldHead, ch);
+                                for (String feat : feats) {
+                                    if (!features.containsKey(feat))
+                                        features.put(feat, 1.0);
+                                    else
+                                        features.put(feat, 1.0 + features.get(feat));
+                                }
+                            }
+                        }
+
+                        // extracting left-hand second order features
+                        //todo
+                        for (int i = 1; i < sentence.length(); i++) {
+                            if (leftDeps[i].size() >= 1) {
+                                for (int j = leftDeps[i].size() - 1; j >= 1; j--) {
+                                    int r = leftDeps[i].get(j);
+                                    int s = leftDeps[i].get(j - 1);
+
+                                    // first case
+                                    boolean hasStretch=stretch[r][s];
+
+                                    boolean isNegativeExample = false;
+                                    int goldRHead = sentence.head(r);
+                                    int goldSHead = sentence.head(s);
+
+                                    //second-case   and third case
+                                    if ((goldRHead!=r && goldRHead!=-1) || (goldSHead!=s && goldSHead!=-1))
+                                        isNegativeExample=true;
+
+
+                                    if (isNegativeExample || hasStretch) {
+                                        ArrayList<String> feats = FeatureExtractor.extract2ndOrderFeatures(sentence, i, r, s);
+                                        for (String feat : feats) {
+                                            if (!features.containsKey(feat))
+                                                features.put(feat, -1.0);
+                                            else
+                                                features.put(feat, -1.0 + features.get(feat));
+                                        }
+                                    }
+                                }
+
+                                // first case
+                                boolean hasStretch = true;
+                                if(goldLeftDeps[i].size()>0)
+                                    hasStretch=stretch[i-1][goldLeftDeps[i].get(0)] ;
+
+                                // second case
+                                int realHead=goldLeftDeps[i].size()>0 ? sentence.head(goldLeftDeps[i].get(0)):-1;
+                                boolean wrongHead=false;
+                                if (realHead!=-1 && realHead!=goldLeftDeps[i].get(0))
+                                    wrongHead=true;
+
+                                if (hasStretch || wrongHead) {
+                                    ArrayList<String> feats = FeatureExtractor.extract2ndOrderFeatures(sentence, i, 0, leftDeps[i].get(leftDeps[i].size() - 1));
+                                    for (String feat : feats) {
+                                        if (!features.containsKey(feat))
+                                            features.put(feat, -1.0);
+                                        else
+                                            features.put(feat, -1.0 + features.get(feat));
+                                    }
+                                }
+                            }
+
+                            //todo
+                            if (goldLeftDeps[i].size() >= 1) {
+                                for (int j = goldLeftDeps[i].size() - 1; j >= 1; j--) {
+                                    int r = goldLeftDeps[i].get(j);
+                                    int s = goldLeftDeps[i].get(j - 1);
+
+
+                                    boolean hasStretch=stretch[r][s];
+
+                                    if(hasStretch) {
+                                        ArrayList<String> feats = FeatureExtractor.extract2ndOrderFeatures(sentence, i, r, s);
+                                        for (String feat : feats) {
+                                            if (!features.containsKey(feat))
+                                                features.put(feat, 1.0);
+                                            else
+                                                features.put(feat, 1.0 + features.get(feat));
+                                        }
+                                    }
+                                }
+
+
+                                boolean hasStretch = stretch[i-1][goldLeftDeps[i].get(0)];
+
+                                 if(hasStretch) {
+                                     ArrayList<String> feats = FeatureExtractor.extract2ndOrderFeatures(sentence, i, 0, goldLeftDeps[i].get(goldLeftDeps[i].size() - 1));
+                                     for (String feat : feats) {
+                                         if (!features.containsKey(feat))
+                                             features.put(feat, 1.0);
+                                         else
+                                             features.put(feat, 1.0 + features.get(feat));
+                                     }
+                                 }
+                            }
+
+                            // extracting right-hand second order features
+                            //todo
+                            if (rightDeps[i].size() >= 1) {
+                                for (int j = 0; j < rightDeps[i].size() - 1; j++) {
+                                    int r = rightDeps[i].get(j);
+                                    int t = rightDeps[i].get(j + 1);
+
+
+                                    // first case
+                                    boolean hasStretch=stretch[r][t];
+
+                                    boolean isNegativeExample = false;
+                                    int goldRHead = sentence.head(r);
+                                    int goldTHead = sentence.head(t);
+
+                                    //second-case   and third case
+                                    if ((goldRHead!=r && goldRHead!=-1) || (goldTHead!=t && goldTHead!=-1))
+                                        isNegativeExample=true;
+
+
+                                    if(isNegativeExample && hasStretch) {
+                                        ArrayList<String> feats = FeatureExtractor.extract2ndOrderFeatures(sentence, i, r, t);
+                                        for (String feat : feats) {
+                                            if (!features.containsKey(feat))
+                                                features.put(feat, -1.0);
+                                            else
+                                                features.put(feat, -1.0 + features.get(feat));
+                                        }
+                                    }
+                                }
+
+                                // first case
+                                boolean hasStretch = true;
+                                if(goldRightDeps[i].size()>0)
+                                    hasStretch=stretch[i+1][goldRightDeps[i].get(0)];
+
+                                // second case
+                                int realHead=goldLeftDeps[i].size()>0 ?sentence.head(goldLeftDeps[i].get(0)):-1;
+                                boolean wrongHead=false;
+                                if (realHead!=-1 && realHead!=goldLeftDeps[i].get(0))
+                                    wrongHead=true;
+
+
+                                if(hasStretch || wrongHead) {
+                                    ArrayList<String> feats = FeatureExtractor.extract2ndOrderFeatures(sentence, i, 0, rightDeps[i].get(0));
+                                    for (String feat : feats) {
+                                        if (!features.containsKey(feat))
+                                            features.put(feat, -1.0);
+                                        else
+                                            features.put(feat, -1.0 + features.get(feat));
+                                    }
+                                }
+                            }
+
+                            //todo
+                            if (goldRightDeps[i].size() >= 1) {
+                                for (int j = 0; j < goldRightDeps[i].size() - 1; j++) {
+                                    int r = goldRightDeps[i].get(j);
+                                    int t = goldRightDeps[i].get(j + 1);
+
+                                    // first case
+                                    boolean hasStretch=stretch[r][t];
+
+                                    if(hasStretch) {
+                                        ArrayList<String> feats = FeatureExtractor.extract2ndOrderFeatures(sentence, i, r, t);
+                                        for (String feat : feats) {
+                                            if (!features.containsKey(feat))
+                                                features.put(feat, 1.0);
+                                            else
+                                                features.put(feat, 1.0 + features.get(feat));
+                                        }
+                                    }
+                                }
+
+                                boolean hasStretch = stretch[i+1][goldRightDeps[i].get(0)];
+
+                                if(hasStretch) {
+                                    ArrayList<String> feats = FeatureExtractor.extract2ndOrderFeatures(sentence, i, 0, goldRightDeps[i].get(0));
+                                    for (String feat : feats) {
+                                        if (!features.containsKey(feat))
+                                            features.put(feat, 1.0);
+                                        else
+                                            features.put(feat, 1.0 + features.get(feat));
+                                    }
+                                }
+                            }
+                        }
+
+                        for (String feat : features.keySet()) {
+                            double value = features.get(feat);
+                            if (value != 0.0)
+                                onlineClassifier.updateWeight(feat, value);
+                        }
+                    }
+                    onlineClassifier.incrementIteration();
+                } else if (alwaysPartial || (trainPartial && iter >= insertConstraintIter)) {
                     /// just train first order factors
                     for (int ch = 1; ch < sentence.length(); ch++) {
                         if (sentence.hasHead(ch)) {
@@ -470,10 +730,10 @@ public class PartialTreeTrainer {
                                 ArrayList<String> predictedFeatures = FeatureExtractor.extract1stOrderFeatures(sentence, argmax, ch);
                                 ArrayList<String> goldFeatures = FeatureExtractor.extract1stOrderFeatures(sentence, goldHead, ch);
 
-                                for(String predicted:predictedFeatures)
-                                    onlineClassifier.updateWeight(predicted,-1);
-                                for(String gold:goldFeatures)
-                                    onlineClassifier.updateWeight(gold,1);
+                                for (String predicted : predictedFeatures)
+                                    onlineClassifier.updateWeight(predicted, -1);
+                                for (String gold : goldFeatures)
+                                    onlineClassifier.updateWeight(gold, 1);
                             } else {
                                 correct++;
                             }
@@ -511,7 +771,7 @@ public class PartialTreeTrainer {
 
             long start = System.currentTimeMillis();
             for (Sentence sentence : devSentences) {
-                Sentence parseTree = parser.eisner2ndOrder(sentence, true,true,false,false);
+                Sentence parseTree = parser.eisner2ndOrder(sentence, true, true, false, false);
                 writer.write(parseTree.toString());
                 senCount++;
                 if (senCount % 100 == 0) {
@@ -552,40 +812,38 @@ public class PartialTreeTrainer {
             System.out.println(String.format("unlabeled: %s labeled: %s", unlabeledAccuracy, labeledAccuracy));
 
 
-
             // todo parsing with constraints
-            if(insertConstraintIter==iter+1 || (iterativeConstraint && (insertConstraintIter-iter-1)%resetPeriod==0 )){
+            if (insertConstraintIter == iter + 1 || (iterativeConstraint && (insertConstraintIter - iter - 1) % resetPeriod == 0)) {
 
                 System.out.print("\nresetting data for parsing with constraints... ");
 
-                trainSentences=  MSTReader.readSentences(trainPath,false);
+                trainSentences = MSTReader.readSentences(trainPath, false);
                 System.out.print("\nparsing with constraints... ");
-                int numAll=0;
-                for (int ins=0;ins<trainSentences.size();ins++ ) {
+                int numAll = 0;
+                for (int ins = 0; ins < trainSentences.size(); ins++) {
                     if (ins % 1000 == 0) {
                         System.out.print(ins + "...");
                     }
-                    Sentence sentence =trainSentences.get(ins);
-                    int numDeps=0;
+                    Sentence sentence = trainSentences.get(ins);
+                    int numDeps = 0;
                     for (int ch = 1; ch < sentence.length(); ch++) {
                         if (sentence.hasHead(ch)) {
                             numDeps++;
                         }
                     }
-                    if((numDeps<sentence.length()-1) && ((double)numDeps/(sentence.length()-1)) > minDepProp){
-                        Sentence parseTree = parser.eisner2ndOrder(sentence, true,useHandCraftedRules,true,softConstraint);
+                    if ((numDeps < sentence.length() - 1) && ((double) numDeps / (sentence.length() - 1)) > minDepProp) {
+                        Sentence parseTree = parser.eisner2ndOrder(sentence, true, useHandCraftedRules, true, softConstraint);
                         sentence.setHeads(parseTree.getHeads());
                         sentence.setLabels(parseTree.getLabels());
                         numAll++;
                     }
                 }
-                System.out.println("\n added "+numAll+" trees");
-
+                System.out.println("\n added " + numAll + " trees");
 
 
                 System.out.print("saving full trees... ");
-                String filePath=modelPath+".full_trees.iter"+(insertConstraintIter-iter-1)/resetPeriod;
-                BufferedWriter fullTreeWriter=new BufferedWriter(new FileWriter(filePath));
+                String filePath = modelPath + ".full_trees.iter" + (insertConstraintIter - iter - 1) / resetPeriod;
+                BufferedWriter fullTreeWriter = new BufferedWriter(new FileWriter(filePath));
                 for (Sentence sentence : trainSentences) {
                     senCount++;
                     if (senCount % 1000 == 0) {
@@ -599,26 +857,26 @@ public class PartialTreeTrainer {
                         }
                     }
                     if (isCompleteTree && isProjective(sentence)) {
-                        StringBuilder wOutput=new StringBuilder();
-                        StringBuilder pOutput=new StringBuilder();
-                        StringBuilder lOutput=new StringBuilder();
-                        StringBuilder hOutput=new StringBuilder();
-                        for(int i=1;i<sentence.length();i++) {
+                        StringBuilder wOutput = new StringBuilder();
+                        StringBuilder pOutput = new StringBuilder();
+                        StringBuilder lOutput = new StringBuilder();
+                        StringBuilder hOutput = new StringBuilder();
+                        for (int i = 1; i < sentence.length(); i++) {
                             wOutput.append(sentence.word(i) + "\t");
                             pOutput.append(sentence.pos(i) + "\t");
-                            lOutput.append("_"+ "\t");
+                            lOutput.append("_" + "\t");
                             hOutput.append(sentence.head(i) + "\t");
                         }
-                        fullTreeWriter.write(wOutput.toString().trim()+"\n");
-                        fullTreeWriter.write(pOutput.toString().trim()+"\n");
-                        fullTreeWriter.write(lOutput.toString().trim()+"\n");
-                        fullTreeWriter.write(hOutput.toString().trim()+"\n\n");
+                        fullTreeWriter.write(wOutput.toString().trim() + "\n");
+                        fullTreeWriter.write(pOutput.toString().trim() + "\n");
+                        fullTreeWriter.write(lOutput.toString().trim() + "\n");
+                        fullTreeWriter.write(hOutput.toString().trim() + "\n\n");
                     }
 
                 }
                 fullTreeWriter.flush();
                 fullTreeWriter.close();
-                System.out.println("\n Saved to "+filePath);
+                System.out.println("\n Saved to " + filePath);
             }
             System.out.println("");
 
