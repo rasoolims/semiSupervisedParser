@@ -117,7 +117,7 @@ public class SanityCheckTest {
             if (possibleLabels.size() == 0)
                 possibleLabels.add("");
             System.err.println("labeled: " + labeled + " with " + possibleLabels.size() + " possibilities");
-            PartialTreeTrainer.train(trainData, devData, possibleLabels, onlineClassifier, modelPath, 30, useDynamTrain, modelPath + ".out", useHandCraftedRules,false);
+            PartialTreeTrainer.train(trainData, devData, possibleLabels, onlineClassifier, modelPath, 30, useDynamTrain, modelPath + ".out", useHandCraftedRules, false);
         } else {
             if (possibleLabels.size() == 0)
                 possibleLabels.add("");
